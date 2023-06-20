@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package testdata.v1;
+
+option go_package = "github.com/QuangTung97/fieldmask/testdata/pb;pb";
+
+message Provider {
+  int32 id = 1;
+  string name = 2;
+  string logo = 3;
+  string image_url = 4;
+}
+
+message Option {
+  string code = 1;
+  string name = 2;
+}
+
+message Attribute {
+  int32 id = 1;
+  string code = 2;
+  string name = 3;
+  repeated Option options = 4;
+}
+
+message Product {
+  string sku = 1;
+  Provider provider = 2;
+  repeated Attribute attributes = 3;
+}
