@@ -99,6 +99,10 @@ func pb_Product_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *p
 				}
 				newMsg.Attributes = msgList
 			})
+		case "sellerIds":
+			subFuncs = append(subFuncs, pb_Product_Keep_SellerIds)
+		case "brandCodes":
+			subFuncs = append(subFuncs, pb_Product_Keep_BrandCodes)
 		}
 	}
 
@@ -199,6 +203,14 @@ func pb_ProviderInfo_Keep_ImageUrl(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo
 
 func pb_Product_Keep_Sku(newMsg *pb.Product, msg *pb.Product) {
 	newMsg.Sku = msg.Sku
+}
+
+func pb_Product_Keep_SellerIds(newMsg *pb.Product, msg *pb.Product) {
+	newMsg.SellerIds = msg.SellerIds
+}
+
+func pb_Product_Keep_BrandCodes(newMsg *pb.Product, msg *pb.Product) {
+	newMsg.BrandCodes = msg.BrandCodes
 }
 
 // =========================================

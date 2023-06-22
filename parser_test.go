@@ -7,7 +7,11 @@ import (
 )
 
 func TestParser_Simple_Message(t *testing.T) {
-	info := parseMessage(&pb.ProviderInfo{})
+	infos := parseMessages(&pb.ProviderInfo{})
+	assert.Equal(t, 1, len(infos))
+
+	info := infos[0]
+
 	assert.Equal(t, "ProviderInfo", info.typeName)
 	assert.Equal(t, "github.com/QuangTung97/fieldmask/testdata/pb", info.importPath)
 
@@ -32,7 +36,10 @@ func TestParser_Simple_Message(t *testing.T) {
 }
 
 func TestParser_Complex_Object(t *testing.T) {
-	info := parseMessage(&pb.Product{})
+	infos := parseMessages(&pb.Product{})
+	assert.Equal(t, 1, len(infos))
+
+	info := infos[0]
 
 	option := &objectInfo{
 		typeName:   "Option",
@@ -113,11 +120,28 @@ func TestParser_Complex_Object(t *testing.T) {
 			fieldType: fieldTypeArrayOfObjects,
 			info:      attribute,
 		},
+		{
+			name:      "SellerIds",
+			jsonName:  "sellerIds",
+			fieldType: fieldTypeArrayOfPrimitives,
+		},
+		{
+			name:      "BrandCodes",
+			jsonName:  "brandCodes",
+			fieldType: fieldTypeArrayOfPrimitives,
+		},
 	}, info.subFields)
 }
 
 func TestParser_Invalid_Type(t *testing.T) {
 	assert.PanicsWithValue(t, "invalid message type", func() {
-		parseMessage(nil)
+		parseMessages(nil)
 	})
+}
+
+func TestParser_Multiple_Objects(t *testing.T) {
+	infos := parseMessages(&pb.ProviderInfo{}, &pb.Product{})
+	assert.Equal(t, 2, len(infos))
+
+	assert.Same(t, infos[0], infos[1].subFields[1].info)
 }

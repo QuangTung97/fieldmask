@@ -67,15 +67,23 @@ func getJsonName(field reflect.StructField) (string, bool) {
 	return jsonName, true
 }
 
-func parseObjectInfo(msgType reflect.Type) *objectInfo {
-	return &objectInfo{
+func parseObjectInfo(msgType reflect.Type, parsedObjects map[objectKey]*objectInfo) *objectInfo {
+	obj := &objectInfo{
 		typeName:   msgType.Name(),
 		importPath: msgType.PkgPath(),
-		subFields:  parseMessageFields(msgType),
 	}
+
+	existedObj, existed := parsedObjects[obj.getKey()]
+	if existed {
+		return existedObj
+	}
+
+	obj.subFields = parseMessageFields(msgType, parsedObjects)
+	parsedObjects[obj.getKey()] = obj
+	return obj
 }
 
-func parseMessageFields(structType reflect.Type) []objectField {
+func parseMessageFields(structType reflect.Type, parsedObjects map[objectKey]*objectInfo) []objectField {
 	var result []objectField
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
@@ -90,12 +98,17 @@ func parseMessageFields(structType reflect.Type) []objectField {
 
 		switch field.Type.Kind() {
 		case reflect.Pointer:
-			info = parseObjectInfo(field.Type.Elem())
+			info = parseObjectInfo(field.Type.Elem(), parsedObjects)
 			subType = fieldTypeObject
 
 		case reflect.Slice:
-			info = parseObjectInfo(field.Type.Elem().Elem())
-			subType = fieldTypeArrayOfObjects
+			elemType := field.Type.Elem()
+			if elemType.Kind() == reflect.Pointer {
+				info = parseObjectInfo(elemType.Elem(), parsedObjects)
+				subType = fieldTypeArrayOfObjects
+			} else {
+				subType = fieldTypeArrayOfPrimitives
+			}
 		}
 
 		result = append(result, objectField{
@@ -108,12 +121,20 @@ func parseMessageFields(structType reflect.Type) []objectField {
 	return result
 }
 
-func parseMessage(msg proto.Message) *objectInfo {
-	msgType := reflect.TypeOf(msg)
-	if msgType == nil || msgType.Kind() != reflect.Pointer {
-		panic("invalid message type")
-	}
+func parseMessages(msgList ...proto.Message) []*objectInfo {
+	var result []*objectInfo
 
-	msgType = msgType.Elem()
-	return parseObjectInfo(msgType)
+	parsedObjects := map[objectKey]*objectInfo{}
+
+	for _, msg := range msgList {
+		msgType := reflect.TypeOf(msg)
+		if msgType == nil || msgType.Kind() != reflect.Pointer {
+			panic("invalid message type")
+		}
+
+		msgType = msgType.Elem()
+		info := parseObjectInfo(msgType, parsedObjects)
+		result = append(result, info)
+	}
+	return result
 }

@@ -27,4 +27,6 @@ message Product {
   string sku = 1;
   ProviderInfo provider = 2;
   repeated Attribute attributes = 3;
+  repeated int32 seller_ids = 4;
+  repeated string brand_codes = 5;
 }

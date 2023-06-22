@@ -237,10 +237,12 @@ func generateCode(
 		}
 	}
 
+	imports := computeImports(infos)
+
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, generateParams{
 		PackageName: packageName,
-		Imports:     computeImports(infos),
+		Imports:     imports,
 		TypeAndNewFuncs: mapSlice(inputOnlyInfos, func(e *objectInfo) typeAndNewFunc {
 			return typeAndNewFunc{
 				StructName:          e.typeName + "FieldMask",
