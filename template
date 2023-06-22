@@ -13,8 +13,8 @@ type {{ .StructName }} struct {
 	keepFunc {{ .FuncType }}
 }
 
-func New{{ .StructName }}(fields []string) (*{{ .StructName}}, error) {
-	fieldInfos, err := fieldmask.ComputeFieldInfos(fields)
+func New{{ .StructName }}(fields []string, options ...fieldmask.Option) (*{{ .StructName}}, error) {
+	fieldInfos, err := fieldmask.ComputeFieldInfos(fields, options...)
 	if err != nil {
 		return nil, err
 	}

@@ -11,8 +11,8 @@ type ProviderInfoFieldMask struct {
 	keepFunc func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo)
 }
 
-func NewProviderInfoFieldMask(fields []string) (*ProviderInfoFieldMask, error) {
-	fieldInfos, err := fieldmask.ComputeFieldInfos(fields)
+func NewProviderInfoFieldMask(fields []string, options ...fieldmask.Option) (*ProviderInfoFieldMask, error) {
+	fieldInfos, err := fieldmask.ComputeFieldInfos(fields, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +37,8 @@ type ProductFieldMask struct {
 	keepFunc func(newMsg *pb.Product, msg *pb.Product)
 }
 
-func NewProductFieldMask(fields []string) (*ProductFieldMask, error) {
-	fieldInfos, err := fieldmask.ComputeFieldInfos(fields)
+func NewProductFieldMask(fields []string, options ...fieldmask.Option) (*ProductFieldMask, error) {
+	fieldInfos, err := fieldmask.ComputeFieldInfos(fields, options...)
 	if err != nil {
 		return nil, err
 	}

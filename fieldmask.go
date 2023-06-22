@@ -128,7 +128,7 @@ type FieldNotFoundError struct {
 	Field string
 }
 
-var _ FieldErrorUpdater = FieldNotFoundError{}
+var _ FieldErrorPrepend = FieldNotFoundError{}
 
 func (e FieldNotFoundError) Error() string {
 	return fmt.Sprintf("fieldmask: field not found '%s'", e.Field)
@@ -167,19 +167,19 @@ func ErrDuplicatedField(field string) error {
 	return DuplicatedFieldError{Field: field}
 }
 
-var _ FieldErrorUpdater = DuplicatedFieldError{}
+var _ FieldErrorPrepend = DuplicatedFieldError{}
 
 // ===========================================
 // Prepend Parent Field
 // ===========================================
 
-type FieldErrorUpdater interface {
+type FieldErrorPrepend interface {
 	PrependField(parentField string) error
 }
 
 // PrependParentField ...
 func PrependParentField(err error, parentField string) error {
-	updater, ok := err.(FieldErrorUpdater)
+	updater, ok := err.(FieldErrorPrepend)
 	if !ok {
 		return err
 	}
