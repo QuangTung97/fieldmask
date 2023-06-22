@@ -1,6 +1,7 @@
 package fieldmask
 
 import (
+	"errors"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -140,5 +141,53 @@ func TestComputeFieldInfos(t *testing.T) {
 		assert.Equal(t, ErrDuplicatedField("provider.name"), err)
 		assert.Equal(t, "fieldmask: duplicated field 'provider.name'", err.Error())
 		assert.Nil(t, infos)
+	})
+
+	t.Run("too much field", func(t *testing.T) {
+		infos, err := ComputeFieldInfos([]string{
+			"sku",
+			"name",
+			"provider.name",
+			"provider.id",
+		}, WithMaxFields(4))
+		assert.Equal(t, errors.New("fieldmask: exceeded max number of fields"), err)
+		assert.Equal(t, 0, len(infos))
+	})
+
+	t.Run("near too much field", func(t *testing.T) {
+		infos, err := ComputeFieldInfos([]string{
+			"sku",
+			"name",
+			"provider.name",
+			"provider.id",
+		}, WithMaxFields(5))
+		assert.Equal(t, nil, err)
+		assert.Equal(t, 3, len(infos))
+	})
+
+	t.Run("too much field depth", func(t *testing.T) {
+		infos, err := ComputeFieldInfos([]string{
+			"sku",
+			"name",
+			"provider.name.code.value",
+			"provider.id",
+			"provider.logo",
+			"provider.imageUrl",
+		}, WithMaxFieldDepth(3))
+		assert.Equal(t, errors.New("fieldmask: exceeded max number of field depth"), err)
+		assert.Equal(t, 0, len(infos))
+	})
+
+	t.Run("near too much field depth", func(t *testing.T) {
+		infos, err := ComputeFieldInfos([]string{
+			"sku",
+			"name",
+			"provider.name.code.value",
+			"provider.id",
+			"provider.logo",
+			"provider.imageUrl",
+		}, WithMaxFieldDepth(4))
+		assert.Equal(t, nil, err)
+		assert.Equal(t, 3, len(infos))
 	})
 }

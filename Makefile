@@ -1,4 +1,4 @@
-.PHONY: generate test
+.PHONY: generate test lint
 
 generate:
 	protoc -I./testdata --gofast_out=paths=source_relative:./testdata/pb message.proto
@@ -6,3 +6,6 @@ generate:
 test:
 	go test -v ./...
 	go test -v ./testdata/generated/...
+
+lint:
+	go fmt ./...
