@@ -18,7 +18,7 @@ func TestComputeFieldInfos(t *testing.T) {
 		assert.Equal(t, nil, err)
 		assert.Equal(t, []FieldInfo{
 			{
-				JsonName: "sku",
+				FieldName: "sku",
 			},
 		}, infos)
 	})
@@ -28,10 +28,10 @@ func TestComputeFieldInfos(t *testing.T) {
 		assert.Equal(t, nil, err)
 		assert.Equal(t, []FieldInfo{
 			{
-				JsonName: "sku",
+				FieldName: "sku",
 			},
 			{
-				JsonName: "name",
+				FieldName: "name",
 			},
 		}, infos)
 	})
@@ -41,13 +41,13 @@ func TestComputeFieldInfos(t *testing.T) {
 		assert.Equal(t, nil, err)
 		assert.Equal(t, []FieldInfo{
 			{
-				JsonName: "sku",
+				FieldName: "sku",
 			},
 			{
-				JsonName: "provider",
+				FieldName: "provider",
 				SubFields: []FieldInfo{
 					{
-						JsonName: "id",
+						FieldName: "id",
 					},
 				},
 			},
@@ -67,36 +67,36 @@ func TestComputeFieldInfos(t *testing.T) {
 		assert.Equal(t, nil, err)
 		assert.Equal(t, []FieldInfo{
 			{
-				JsonName: "sku",
+				FieldName: "sku",
 			},
 			{
-				JsonName: "provider",
+				FieldName: "provider",
 				SubFields: []FieldInfo{
 					{
-						JsonName: "id",
+						FieldName: "id",
 					},
 					{
-						JsonName: "name",
+						FieldName: "name",
 					},
 				},
 			},
 			{
-				JsonName: "seller",
+				FieldName: "seller",
 				SubFields: []FieldInfo{
 					{
-						JsonName: "name",
+						FieldName: "name",
 					},
 					{
-						JsonName: "logo",
+						FieldName: "logo",
 					},
 					{
-						JsonName: "attr",
+						FieldName: "attr",
 						SubFields: []FieldInfo{
 							{
-								JsonName: "code",
+								FieldName: "code",
 							},
 							{
-								JsonName: "name",
+								FieldName: "name",
 							},
 						},
 					},

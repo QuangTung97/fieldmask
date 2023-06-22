@@ -6,7 +6,7 @@ import (
 
 // FieldInfo ...
 type FieldInfo struct {
-	JsonName  string
+	FieldName string
 	SubFields []FieldInfo
 }
 
@@ -100,7 +100,7 @@ func (p *fieldInfoParser) toFieldInfos() []FieldInfo {
 		}
 
 		result = append(result, FieldInfo{
-			JsonName:  f,
+			FieldName: f,
 			SubFields: subFields,
 		})
 	}

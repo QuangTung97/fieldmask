@@ -71,7 +71,7 @@ func pb_ProviderInfo_ComputeKeepFunc(fieldInfos []fields.FieldInfo) (func(newMsg
 	for _, field := range fieldInfos {
 		isSimpleField := true
 
-		switch field.JsonName {
+		switch field.FieldName {
 		case "id":
 			subFuncs = append(subFuncs, pb_ProviderInfo_Keep_Id)
 		case "name":
@@ -81,11 +81,11 @@ func pb_ProviderInfo_ComputeKeepFunc(fieldInfos []fields.FieldInfo) (func(newMsg
 		case "imageUrl":
 			subFuncs = append(subFuncs, pb_ProviderInfo_Keep_ImageUrl)
 		default:
-			return nil, fields.ErrFieldNotFound(field.JsonName)
+			return nil, fields.ErrFieldNotFound(field.FieldName)
 		}
 
 		if isSimpleField && len(field.SubFields) > 0 {
-			return nil, fields.PrependParentField(fields.ErrFieldNotFound(field.SubFields[0].JsonName), field.JsonName)
+			return nil, fields.PrependParentField(fields.ErrFieldNotFound(field.SubFields[0].FieldName), field.FieldName)
 		}
 	}
 
@@ -108,7 +108,7 @@ func pb_Product_ComputeKeepFunc(fieldInfos []fields.FieldInfo) (func(newMsg *pb.
 	for _, field := range fieldInfos {
 		isSimpleField := true
 
-		switch field.JsonName {
+		switch field.FieldName {
 		case "sku":
 			subFuncs = append(subFuncs, pb_Product_Keep_Sku)
 		case "provider":
@@ -142,11 +142,11 @@ func pb_Product_ComputeKeepFunc(fieldInfos []fields.FieldInfo) (func(newMsg *pb.
 		case "brandCodes":
 			subFuncs = append(subFuncs, pb_Product_Keep_BrandCodes)
 		default:
-			return nil, fields.ErrFieldNotFound(field.JsonName)
+			return nil, fields.ErrFieldNotFound(field.FieldName)
 		}
 
 		if isSimpleField && len(field.SubFields) > 0 {
-			return nil, fields.PrependParentField(fields.ErrFieldNotFound(field.SubFields[0].JsonName), field.JsonName)
+			return nil, fields.PrependParentField(fields.ErrFieldNotFound(field.SubFields[0].FieldName), field.FieldName)
 		}
 	}
 
@@ -169,7 +169,7 @@ func pb_Attribute_ComputeKeepFunc(fieldInfos []fields.FieldInfo) (func(newMsg *p
 	for _, field := range fieldInfos {
 		isSimpleField := true
 
-		switch field.JsonName {
+		switch field.FieldName {
 		case "id":
 			subFuncs = append(subFuncs, pb_Attribute_Keep_Id)
 		case "code":
@@ -192,11 +192,11 @@ func pb_Attribute_ComputeKeepFunc(fieldInfos []fields.FieldInfo) (func(newMsg *p
 				newMsg.Options = msgList
 			})
 		default:
-			return nil, fields.ErrFieldNotFound(field.JsonName)
+			return nil, fields.ErrFieldNotFound(field.FieldName)
 		}
 
 		if isSimpleField && len(field.SubFields) > 0 {
-			return nil, fields.PrependParentField(fields.ErrFieldNotFound(field.SubFields[0].JsonName), field.JsonName)
+			return nil, fields.PrependParentField(fields.ErrFieldNotFound(field.SubFields[0].FieldName), field.FieldName)
 		}
 	}
 
@@ -219,17 +219,17 @@ func pb_Option_ComputeKeepFunc(fieldInfos []fields.FieldInfo) (func(newMsg *pb.O
 	for _, field := range fieldInfos {
 		isSimpleField := true
 
-		switch field.JsonName {
+		switch field.FieldName {
 		case "code":
 			subFuncs = append(subFuncs, pb_Option_Keep_Code)
 		case "name":
 			subFuncs = append(subFuncs, pb_Option_Keep_Name)
 		default:
-			return nil, fields.ErrFieldNotFound(field.JsonName)
+			return nil, fields.ErrFieldNotFound(field.FieldName)
 		}
 
 		if isSimpleField && len(field.SubFields) > 0 {
-			return nil, fields.PrependParentField(fields.ErrFieldNotFound(field.SubFields[0].JsonName), field.JsonName)
+			return nil, fields.PrependParentField(fields.ErrFieldNotFound(field.SubFields[0].FieldName), field.FieldName)
 		}
 	}
 

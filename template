@@ -49,16 +49,16 @@ func {{ .FuncName }}(fieldInfos []fields.FieldInfo) ({{ .FuncType }}, error) {
 	for _, field := range fieldInfos {
 		isSimpleField := true
 
-		switch field.JsonName {
+		switch field.FieldName {
 		{{ range .FieldFuncs }}case "{{ .JsonName }}":
 			{{ .AppendStmt }}
 		{{ end -}}
 		default:
-			return nil, fields.ErrFieldNotFound(field.JsonName)
+			return nil, fields.ErrFieldNotFound(field.FieldName)
 		}
 
 		if isSimpleField && len(field.SubFields) > 0 {
-			return nil, fields.PrependParentField(fields.ErrFieldNotFound(field.SubFields[0].JsonName), field.JsonName)
+			return nil, fields.PrependParentField(fields.ErrFieldNotFound(field.SubFields[0].FieldName), field.FieldName)
 		}
 	}
 

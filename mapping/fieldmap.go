@@ -2,6 +2,7 @@ package fieldmap
 
 import (
 	"fmt"
+	"github.com/QuangTung97/fieldmask/fields"
 	"reflect"
 )
 
@@ -325,4 +326,10 @@ func (f *FieldMap[F, T]) GetFullStructTag(tag string, field F) string {
 			return fullTag
 		}
 	}
+}
+
+func (f *FieldMap[F, T]) FromMaskedFields(
+	maskedFields []fields.FieldInfo,
+) []F {
+	return nil
 }
