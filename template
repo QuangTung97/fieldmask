@@ -38,7 +38,7 @@ func {{ .FuncName }}(fieldInfos []fieldmask.FieldInfo) {{ .FuncType }} {
 	for _, field := range fieldInfos {
 		switch field.JsonName {
 		{{ range .FieldFuncs }}case "{{ .JsonName }}":
-			subFuncs = append(subFuncs, {{ .FuncValue }})
+			{{ .AppendStmt }}
 		{{ end }} }
 	}
 

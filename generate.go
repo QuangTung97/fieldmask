@@ -35,8 +35,8 @@ type implFieldFunc struct {
 }
 
 type fieldKeepFunc struct {
-	JsonName  string
-	FuncValue string
+	JsonName   string
+	AppendStmt string
 
 	fieldName string // is private
 	funcName  string // is private
@@ -97,33 +97,31 @@ func getFuncTypeSignature(e *objectInfo) string {
 	return fmt.Sprintf("func (newMsg *%s, msg *%s)", typeName, typeName)
 }
 
-func funcValueForObject(obj *objectInfo, field objectField) string {
+func appendStmtForObject(obj *objectInfo, field objectField) string {
 	objectType := getQualifiedTypeName(obj)
 	subObjectType := getQualifiedTypeName(field.info)
 	funcName := getComputeKeepFuncName(field.info)
 
 	result := fmt.Sprintf(`
-func (newMsg *%s, msg *%s) {
-	keepFunc := %s(field.SubFields)
-
+keepFunc := %s(field.SubFields)
+subFuncs = append(subFuncs, func (newMsg *%s, msg *%s) {
 	newSubMsg := &%s{}
 	keepFunc(newSubMsg, msg.%s)
 	newMsg.%s = newSubMsg
-}
-`, objectType, objectType, funcName, subObjectType, field.name, field.name)
+})
+`, funcName, objectType, objectType, subObjectType, field.name, field.name)
 
 	return strings.TrimSpace(result)
 }
 
-func funcValueForArrayOfObjects(obj *objectInfo, field objectField) string {
+func appendStmtForArrayOfObjects(obj *objectInfo, field objectField) string {
 	objectType := getQualifiedTypeName(obj)
 	subObjectType := getQualifiedTypeName(field.info)
 	funcName := getComputeKeepFuncName(field.info)
 
 	result := fmt.Sprintf(`
-func(newMsg *%s, msg *%s) {
-	keepFunc := %s(field.SubFields)
-
+keepFunc := %s(field.SubFields)
+subFuncs = append(subFuncs, func(newMsg *%s, msg *%s) {
 	msgList := make([]*%s, 0, len(msg.%s))
 	for _, e := range msg.%s {
 		newSubMsg := &%s{}
@@ -131,8 +129,8 @@ func(newMsg *%s, msg *%s) {
 		msgList = append(msgList, newSubMsg)
 	}
 	newMsg.%s = msgList
-}
-`, objectType, objectType, funcName, subObjectType, field.name, field.name, subObjectType, field.name)
+})
+`, funcName, objectType, objectType, subObjectType, field.name, field.name, subObjectType, field.name)
 
 	return strings.TrimSpace(result)
 }
@@ -141,23 +139,23 @@ func buildKeepFuncForField(info *objectInfo, subField objectField) fieldKeepFunc
 	funcName := fmt.Sprintf("%s_%s_Keep_%s", info.alias, info.typeName, subField.name)
 	isObject := false
 
-	var funcValue string
+	var appendStmt string
 	switch subField.fieldType {
 	case fieldTypeObject:
-		funcValue = funcValueForObject(info, subField)
+		appendStmt = appendStmtForObject(info, subField)
 		isObject = true
 
 	case fieldTypeArrayOfObjects:
-		funcValue = funcValueForArrayOfObjects(info, subField)
+		appendStmt = appendStmtForArrayOfObjects(info, subField)
 		isObject = true
 
 	default:
-		funcValue = funcName
+		appendStmt = fmt.Sprintf("subFuncs = append(subFuncs, %s)", funcName)
 	}
 
 	return fieldKeepFunc{
-		JsonName:  subField.jsonName,
-		FuncValue: funcValue,
+		JsonName:   subField.jsonName,
+		AppendStmt: appendStmt,
 
 		fieldName: subField.name,
 		funcName:  funcName,

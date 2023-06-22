@@ -80,17 +80,15 @@ func pb_Product_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *p
 		case "sku":
 			subFuncs = append(subFuncs, pb_Product_Keep_Sku)
 		case "provider":
+			keepFunc := pb_ProviderInfo_ComputeKeepFunc(field.SubFields)
 			subFuncs = append(subFuncs, func(newMsg *pb.Product, msg *pb.Product) {
-				keepFunc := pb_ProviderInfo_ComputeKeepFunc(field.SubFields)
-
 				newSubMsg := &pb.ProviderInfo{}
 				keepFunc(newSubMsg, msg.Provider)
 				newMsg.Provider = newSubMsg
 			})
 		case "attributes":
+			keepFunc := pb_Attribute_ComputeKeepFunc(field.SubFields)
 			subFuncs = append(subFuncs, func(newMsg *pb.Product, msg *pb.Product) {
-				keepFunc := pb_Attribute_ComputeKeepFunc(field.SubFields)
-
 				msgList := make([]*pb.Attribute, 0, len(msg.Attributes))
 				for _, e := range msg.Attributes {
 					newSubMsg := &pb.Attribute{}
@@ -131,9 +129,8 @@ func pb_Attribute_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg 
 		case "name":
 			subFuncs = append(subFuncs, pb_Attribute_Keep_Name)
 		case "options":
+			keepFunc := pb_Option_ComputeKeepFunc(field.SubFields)
 			subFuncs = append(subFuncs, func(newMsg *pb.Attribute, msg *pb.Attribute) {
-				keepFunc := pb_Option_ComputeKeepFunc(field.SubFields)
-
 				msgList := make([]*pb.Option, 0, len(msg.Options))
 				for _, e := range msg.Options {
 					newSubMsg := &pb.Option{}
