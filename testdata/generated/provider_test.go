@@ -1,7 +1,7 @@
 package generated
 
 import (
-	"github.com/QuangTung97/fieldmask"
+	"github.com/QuangTung97/fieldmask/fields"
 	"github.com/QuangTung97/fieldmask/testdata/pb"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -64,7 +64,7 @@ func TestProviderFieldMask(t *testing.T) {
 
 	t.Run("invalid field", func(t *testing.T) {
 		fm, err := NewProviderInfoFieldMask([]string{"id", "sku"})
-		assert.Equal(t, fieldmask.ErrFieldNotFound("sku"), err)
+		assert.Equal(t, fields.ErrFieldNotFound("sku"), err)
 		assert.Nil(t, fm)
 	})
 }
@@ -162,7 +162,7 @@ func TestProductFieldMask(t *testing.T) {
 		fm, err := NewProductFieldMask([]string{
 			"sku", "provider.id", "provider.invalid",
 		})
-		assert.Equal(t, fieldmask.ErrFieldNotFound("provider.invalid"), err)
+		assert.Equal(t, fields.ErrFieldNotFound("provider.invalid"), err)
 		assert.Nil(t, fm)
 	})
 
@@ -295,7 +295,7 @@ func TestProductFieldMask(t *testing.T) {
 		fm, err := NewProductFieldMask([]string{
 			"sku.invalid",
 		})
-		assert.Equal(t, fieldmask.ErrFieldNotFound("sku.invalid"), err)
+		assert.Equal(t, fields.ErrFieldNotFound("sku.invalid"), err)
 		assert.Nil(t, fm)
 	})
 
@@ -303,7 +303,7 @@ func TestProductFieldMask(t *testing.T) {
 		fm, err := NewProductFieldMask([]string{
 			"provider.logo.invalid",
 		})
-		assert.Equal(t, fieldmask.ErrFieldNotFound("provider.logo.invalid"), err)
+		assert.Equal(t, fields.ErrFieldNotFound("provider.logo.invalid"), err)
 		assert.Nil(t, fm)
 	})
 
@@ -311,7 +311,7 @@ func TestProductFieldMask(t *testing.T) {
 		fm, err := NewProductFieldMask([]string{
 			"attributes.name.invalid",
 		})
-		assert.Equal(t, fieldmask.ErrFieldNotFound("attributes.name.invalid"), err)
+		assert.Equal(t, fields.ErrFieldNotFound("attributes.name.invalid"), err)
 		assert.Nil(t, fm)
 	})
 
@@ -319,7 +319,7 @@ func TestProductFieldMask(t *testing.T) {
 		fm, err := NewProductFieldMask([]string{
 			"attributes.options.code.invalid",
 		})
-		assert.Equal(t, fieldmask.ErrFieldNotFound("attributes.options.code.invalid"), err)
+		assert.Equal(t, fields.ErrFieldNotFound("attributes.options.code.invalid"), err)
 		assert.Nil(t, fm)
 	})
 
@@ -328,8 +328,8 @@ func TestProductFieldMask(t *testing.T) {
 			"sku",
 			"provider.id",
 			"provider.name",
-		}, fieldmask.WithMaxFields(3))
-		assert.Equal(t, fieldmask.ErrExceedMaxFields, err)
+		}, fields.WithMaxFields(3))
+		assert.Equal(t, fields.ErrExceedMaxFields, err)
 		assert.Nil(t, fm)
 	})
 }

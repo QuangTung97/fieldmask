@@ -1,4 +1,4 @@
-package fieldmask
+package fields
 
 import (
 	"strings"

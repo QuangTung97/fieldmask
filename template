@@ -3,7 +3,7 @@
 package {{ .PackageName }}
 
 import (
-	"github.com/QuangTung97/fieldmask"
+	"github.com/QuangTung97/fieldmask/fields"
 	{{ range .Imports }}{{ . }}
 {{ end -}}
 )
@@ -13,8 +13,8 @@ type {{ .StructName }} struct {
 	keepFunc {{ .FuncType }}
 }
 
-func New{{ .StructName }}(fields []string, options ...fieldmask.Option) (*{{ .StructName}}, error) {
-	fieldInfos, err := fieldmask.ComputeFieldInfos(fields, options...)
+func New{{ .StructName }}(maskedFields []string, options ...fields.Option) (*{{ .StructName}}, error) {
+	fieldInfos, err := fields.ComputeFieldInfos(maskedFields, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (fm *{{.StructName}}) Mask(msg *{{ .QualifiedType }}) *{{ .QualifiedType }}
 {{ end }}
 
 {{ range .KeepFuncs }}
-func {{ .FuncName }}(fieldInfos []fieldmask.FieldInfo) ({{ .FuncType }}, error) {
+func {{ .FuncName }}(fieldInfos []fields.FieldInfo) ({{ .FuncType }}, error) {
 	if len(fieldInfos) == 0 {
 		return {{ .FuncType }} {
 			*newMsg = *msg
@@ -54,11 +54,11 @@ func {{ .FuncName }}(fieldInfos []fieldmask.FieldInfo) ({{ .FuncType }}, error) 
 			{{ .AppendStmt }}
 		{{ end -}}
 		default:
-			return nil, fieldmask.ErrFieldNotFound(field.JsonName)
+			return nil, fields.ErrFieldNotFound(field.JsonName)
 		}
 
 		if isSimpleField && len(field.SubFields) > 0 {
-			return nil, fieldmask.PrependParentField(fieldmask.ErrFieldNotFound(field.SubFields[0].JsonName), field.JsonName)
+			return nil, fields.PrependParentField(fields.ErrFieldNotFound(field.SubFields[0].JsonName), field.JsonName)
 		}
 	}
 

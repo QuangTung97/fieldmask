@@ -103,7 +103,7 @@ func getKeepFuncStmt(funcName string, parentField string) string {
 isSimpleField = false
 keepFunc, err := %s(field.SubFields)
 if err != nil {
-	return nil, fieldmask.PrependParentField(err, "%s")
+	return nil, fields.PrependParentField(err, "%s")
 }
 `, funcName, parentField)
 	return strings.TrimSpace(result)
