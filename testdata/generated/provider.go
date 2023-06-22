@@ -8,7 +8,8 @@ import (
 )
 
 type ProviderInfoFieldMask struct {
-	keepFunc func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo)
+	keepFunc     func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo)
+	maskedFields []fields.FieldInfo
 }
 
 func NewProviderInfoFieldMask(maskedFields []string, options ...fields.Option) (*ProviderInfoFieldMask, error) {
@@ -23,7 +24,8 @@ func NewProviderInfoFieldMask(maskedFields []string, options ...fields.Option) (
 	}
 
 	return &ProviderInfoFieldMask{
-		keepFunc: keepFunc,
+		keepFunc:     keepFunc,
+		maskedFields: fieldInfos,
 	}, nil
 }
 
@@ -33,8 +35,13 @@ func (fm *ProviderInfoFieldMask) Mask(msg *pb.ProviderInfo) *pb.ProviderInfo {
 	return newMsg
 }
 
+func (fm *ProviderInfoFieldMask) GetMaskedFields() []fields.FieldInfo {
+	return fm.maskedFields
+}
+
 type ProductFieldMask struct {
-	keepFunc func(newMsg *pb.Product, msg *pb.Product)
+	keepFunc     func(newMsg *pb.Product, msg *pb.Product)
+	maskedFields []fields.FieldInfo
 }
 
 func NewProductFieldMask(maskedFields []string, options ...fields.Option) (*ProductFieldMask, error) {
@@ -49,7 +56,8 @@ func NewProductFieldMask(maskedFields []string, options ...fields.Option) (*Prod
 	}
 
 	return &ProductFieldMask{
-		keepFunc: keepFunc,
+		keepFunc:     keepFunc,
+		maskedFields: fieldInfos,
 	}, nil
 }
 
@@ -57,6 +65,10 @@ func (fm *ProductFieldMask) Mask(msg *pb.Product) *pb.Product {
 	newMsg := &pb.Product{}
 	fm.keepFunc(newMsg, msg)
 	return newMsg
+}
+
+func (fm *ProductFieldMask) GetMaskedFields() []fields.FieldInfo {
+	return fm.maskedFields
 }
 
 func pb_ProviderInfo_ComputeKeepFunc(fieldInfos []fields.FieldInfo) (func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo), error) {

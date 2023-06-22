@@ -10,7 +10,8 @@ import (
 
 {{ range .TypeAndNewFuncs }}
 type {{ .StructName }} struct {
-	keepFunc {{ .FuncType }}
+	keepFunc     {{ .FuncType }}
+	maskedFields []fields.FieldInfo
 }
 
 func New{{ .StructName }}(maskedFields []string, options ...fields.Option) (*{{ .StructName}}, error) {
@@ -25,7 +26,8 @@ func New{{ .StructName }}(maskedFields []string, options ...fields.Option) (*{{ 
 	}
 
 	return &{{ .StructName }}{
-		keepFunc: keepFunc,
+		keepFunc:     keepFunc,
+		maskedFields: fieldInfos,
 	}, nil
 }
 
@@ -33,6 +35,10 @@ func (fm *{{.StructName}}) Mask(msg *{{ .QualifiedType }}) *{{ .QualifiedType }}
 	newMsg := &{{ .QualifiedType }}{}
 	fm.keepFunc(newMsg, msg)
 	return newMsg
+}
+
+func (fm *{{.StructName}}) GetMaskedFields() []fields.FieldInfo {
+	return fm.maskedFields
 }
 {{ end }}
 

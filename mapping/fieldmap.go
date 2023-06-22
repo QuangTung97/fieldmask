@@ -329,7 +329,7 @@ func (f *FieldMap[F, T]) GetFullStructTag(tag string, field F) string {
 }
 
 func (f *FieldMap[F, T]) FromMaskedFields(
-	maskedFields []fields.FieldInfo,
+	tag string, maskedFields []fields.FieldInfo,
 ) []F {
 	return nil
 }
