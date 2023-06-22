@@ -103,7 +103,10 @@ func appendStmtForObject(obj *objectInfo, field objectField) string {
 	funcName := getComputeKeepFuncName(field.info)
 
 	result := fmt.Sprintf(`
-keepFunc := %s(field.SubFields)
+keepFunc, err := %s(field.SubFields)
+if err != nil {
+	return nil, err
+}
 subFuncs = append(subFuncs, func (newMsg *%s, msg *%s) {
 	newSubMsg := &%s{}
 	keepFunc(newSubMsg, msg.%s)
@@ -120,7 +123,10 @@ func appendStmtForArrayOfObjects(obj *objectInfo, field objectField) string {
 	funcName := getComputeKeepFuncName(field.info)
 
 	result := fmt.Sprintf(`
-keepFunc := %s(field.SubFields)
+keepFunc, err := %s(field.SubFields)
+if err != nil {
+	return nil, err
+}
 subFuncs = append(subFuncs, func(newMsg *%s, msg *%s) {
 	msgList := make([]*%s, 0, len(msg.%s))
 	for _, e := range msg.%s {

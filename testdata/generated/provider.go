@@ -17,8 +17,13 @@ func NewProviderInfoFieldMask(fields []string) (*ProviderInfoFieldMask, error) {
 		return nil, err
 	}
 
+	keepFunc, err := pb_ProviderInfo_ComputeKeepFunc(fieldInfos)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ProviderInfoFieldMask{
-		keepFunc: pb_ProviderInfo_ComputeKeepFunc(fieldInfos),
+		keepFunc: keepFunc,
 	}, nil
 }
 
@@ -32,16 +37,21 @@ func NewProductFieldMask(fields []string) (*ProductFieldMask, error) {
 		return nil, err
 	}
 
+	keepFunc, err := pb_Product_ComputeKeepFunc(fieldInfos)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ProductFieldMask{
-		keepFunc: pb_Product_ComputeKeepFunc(fieldInfos),
+		keepFunc: keepFunc,
 	}, nil
 }
 
-func pb_ProviderInfo_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo) {
+func pb_ProviderInfo_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo), error) {
 	if len(fieldInfos) == 0 {
 		return func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo) {
 			*newMsg = *msg
-		}
+		}, nil
 	}
 
 	var subFuncs []func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo)
@@ -56,6 +66,8 @@ func pb_ProviderInfo_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newM
 			subFuncs = append(subFuncs, pb_ProviderInfo_Keep_Logo)
 		case "imageUrl":
 			subFuncs = append(subFuncs, pb_ProviderInfo_Keep_ImageUrl)
+		default:
+			return nil, fieldmask.ErrFieldNotFound(field.JsonName)
 		}
 	}
 
@@ -63,14 +75,14 @@ func pb_ProviderInfo_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newM
 		for _, fn := range subFuncs {
 			fn(newMsg, msg)
 		}
-	}
+	}, nil
 }
 
-func pb_Product_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *pb.Product, msg *pb.Product) {
+func pb_Product_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(newMsg *pb.Product, msg *pb.Product), error) {
 	if len(fieldInfos) == 0 {
 		return func(newMsg *pb.Product, msg *pb.Product) {
 			*newMsg = *msg
-		}
+		}, nil
 	}
 
 	var subFuncs []func(newMsg *pb.Product, msg *pb.Product)
@@ -80,14 +92,20 @@ func pb_Product_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *p
 		case "sku":
 			subFuncs = append(subFuncs, pb_Product_Keep_Sku)
 		case "provider":
-			keepFunc := pb_ProviderInfo_ComputeKeepFunc(field.SubFields)
+			keepFunc, err := pb_ProviderInfo_ComputeKeepFunc(field.SubFields)
+			if err != nil {
+				return nil, err
+			}
 			subFuncs = append(subFuncs, func(newMsg *pb.Product, msg *pb.Product) {
 				newSubMsg := &pb.ProviderInfo{}
 				keepFunc(newSubMsg, msg.Provider)
 				newMsg.Provider = newSubMsg
 			})
 		case "attributes":
-			keepFunc := pb_Attribute_ComputeKeepFunc(field.SubFields)
+			keepFunc, err := pb_Attribute_ComputeKeepFunc(field.SubFields)
+			if err != nil {
+				return nil, err
+			}
 			subFuncs = append(subFuncs, func(newMsg *pb.Product, msg *pb.Product) {
 				msgList := make([]*pb.Attribute, 0, len(msg.Attributes))
 				for _, e := range msg.Attributes {
@@ -101,6 +119,8 @@ func pb_Product_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *p
 			subFuncs = append(subFuncs, pb_Product_Keep_SellerIds)
 		case "brandCodes":
 			subFuncs = append(subFuncs, pb_Product_Keep_BrandCodes)
+		default:
+			return nil, fieldmask.ErrFieldNotFound(field.JsonName)
 		}
 	}
 
@@ -108,14 +128,14 @@ func pb_Product_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *p
 		for _, fn := range subFuncs {
 			fn(newMsg, msg)
 		}
-	}
+	}, nil
 }
 
-func pb_Attribute_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *pb.Attribute, msg *pb.Attribute) {
+func pb_Attribute_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(newMsg *pb.Attribute, msg *pb.Attribute), error) {
 	if len(fieldInfos) == 0 {
 		return func(newMsg *pb.Attribute, msg *pb.Attribute) {
 			*newMsg = *msg
-		}
+		}, nil
 	}
 
 	var subFuncs []func(newMsg *pb.Attribute, msg *pb.Attribute)
@@ -129,7 +149,10 @@ func pb_Attribute_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg 
 		case "name":
 			subFuncs = append(subFuncs, pb_Attribute_Keep_Name)
 		case "options":
-			keepFunc := pb_Option_ComputeKeepFunc(field.SubFields)
+			keepFunc, err := pb_Option_ComputeKeepFunc(field.SubFields)
+			if err != nil {
+				return nil, err
+			}
 			subFuncs = append(subFuncs, func(newMsg *pb.Attribute, msg *pb.Attribute) {
 				msgList := make([]*pb.Option, 0, len(msg.Options))
 				for _, e := range msg.Options {
@@ -139,6 +162,8 @@ func pb_Attribute_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg 
 				}
 				newMsg.Options = msgList
 			})
+		default:
+			return nil, fieldmask.ErrFieldNotFound(field.JsonName)
 		}
 	}
 
@@ -146,14 +171,14 @@ func pb_Attribute_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg 
 		for _, fn := range subFuncs {
 			fn(newMsg, msg)
 		}
-	}
+	}, nil
 }
 
-func pb_Option_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *pb.Option, msg *pb.Option) {
+func pb_Option_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(newMsg *pb.Option, msg *pb.Option), error) {
 	if len(fieldInfos) == 0 {
 		return func(newMsg *pb.Option, msg *pb.Option) {
 			*newMsg = *msg
-		}
+		}, nil
 	}
 
 	var subFuncs []func(newMsg *pb.Option, msg *pb.Option)
@@ -164,6 +189,8 @@ func pb_Option_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *pb
 			subFuncs = append(subFuncs, pb_Option_Keep_Code)
 		case "name":
 			subFuncs = append(subFuncs, pb_Option_Keep_Name)
+		default:
+			return nil, fieldmask.ErrFieldNotFound(field.JsonName)
 		}
 	}
 
@@ -171,7 +198,7 @@ func pb_Option_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *pb
 		for _, fn := range subFuncs {
 			fn(newMsg, msg)
 		}
-	}
+	}, nil
 }
 
 // =========================================

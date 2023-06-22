@@ -19,18 +19,23 @@ func New{{ .StructName }}(fields []string) (*{{ .StructName}}, error) {
 		return nil, err
 	}
 
+	keepFunc, err := {{ .ComputeKeepFuncName }}(fieldInfos)
+	if err != nil {
+		return nil, err
+	}
+
 	return &{{ .StructName }}{
-		keepFunc: {{ .ComputeKeepFuncName }}(fieldInfos),
+		keepFunc: keepFunc,
 	}, nil
 }
 {{ end }}
 
 {{ range .KeepFuncs }}
-func {{ .FuncName }}(fieldInfos []fieldmask.FieldInfo) {{ .FuncType }} {
+func {{ .FuncName }}(fieldInfos []fieldmask.FieldInfo) ({{ .FuncType }}, error) {
 	if len(fieldInfos) == 0 {
 		return {{ .FuncType }} {
 			*newMsg = *msg
-		}
+		}, nil
 	}
 
 	var subFuncs []{{ .FuncType }}
@@ -39,14 +44,17 @@ func {{ .FuncName }}(fieldInfos []fieldmask.FieldInfo) {{ .FuncType }} {
 		switch field.JsonName {
 		{{ range .FieldFuncs }}case "{{ .JsonName }}":
 			{{ .AppendStmt }}
-		{{ end }} }
+		{{ end -}}
+		default:
+			return nil, fieldmask.ErrFieldNotFound(field.JsonName)
+		}
 	}
 
 	return {{ .FuncType }} {
 		for _, fn := range subFuncs {
 			fn(newMsg, msg)
 		}
-	}
+	}, nil
 }
 
 {{ end -}}
