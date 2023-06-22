@@ -27,6 +27,12 @@ func NewProviderInfoFieldMask(fields []string) (*ProviderInfoFieldMask, error) {
 	}, nil
 }
 
+func (fm *ProviderInfoFieldMask) Mask(msg *pb.ProviderInfo) *pb.ProviderInfo {
+	newMsg := &pb.ProviderInfo{}
+	fm.keepFunc(newMsg, msg)
+	return newMsg
+}
+
 type ProductFieldMask struct {
 	keepFunc func(newMsg *pb.Product, msg *pb.Product)
 }
@@ -47,6 +53,12 @@ func NewProductFieldMask(fields []string) (*ProductFieldMask, error) {
 	}, nil
 }
 
+func (fm *ProductFieldMask) Mask(msg *pb.Product) *pb.Product {
+	newMsg := &pb.Product{}
+	fm.keepFunc(newMsg, msg)
+	return newMsg
+}
+
 func pb_ProviderInfo_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo), error) {
 	if len(fieldInfos) == 0 {
 		return func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo) {
@@ -57,6 +69,8 @@ func pb_ProviderInfo_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(new
 	var subFuncs []func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo)
 
 	for _, field := range fieldInfos {
+		isSimpleField := true
+
 		switch field.JsonName {
 		case "id":
 			subFuncs = append(subFuncs, pb_ProviderInfo_Keep_Id)
@@ -68,6 +82,10 @@ func pb_ProviderInfo_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(new
 			subFuncs = append(subFuncs, pb_ProviderInfo_Keep_ImageUrl)
 		default:
 			return nil, fieldmask.ErrFieldNotFound(field.JsonName)
+		}
+
+		if isSimpleField && len(field.SubFields) > 0 {
+			return nil, fieldmask.PrependParentField(fieldmask.ErrFieldNotFound(field.SubFields[0].JsonName), field.JsonName)
 		}
 	}
 
@@ -88,13 +106,16 @@ func pb_Product_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(newMsg *
 	var subFuncs []func(newMsg *pb.Product, msg *pb.Product)
 
 	for _, field := range fieldInfos {
+		isSimpleField := true
+
 		switch field.JsonName {
 		case "sku":
 			subFuncs = append(subFuncs, pb_Product_Keep_Sku)
 		case "provider":
+			isSimpleField = false
 			keepFunc, err := pb_ProviderInfo_ComputeKeepFunc(field.SubFields)
 			if err != nil {
-				return nil, err
+				return nil, fieldmask.PrependParentField(err, "provider")
 			}
 			subFuncs = append(subFuncs, func(newMsg *pb.Product, msg *pb.Product) {
 				newSubMsg := &pb.ProviderInfo{}
@@ -102,9 +123,10 @@ func pb_Product_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(newMsg *
 				newMsg.Provider = newSubMsg
 			})
 		case "attributes":
+			isSimpleField = false
 			keepFunc, err := pb_Attribute_ComputeKeepFunc(field.SubFields)
 			if err != nil {
-				return nil, err
+				return nil, fieldmask.PrependParentField(err, "attributes")
 			}
 			subFuncs = append(subFuncs, func(newMsg *pb.Product, msg *pb.Product) {
 				msgList := make([]*pb.Attribute, 0, len(msg.Attributes))
@@ -121,6 +143,10 @@ func pb_Product_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(newMsg *
 			subFuncs = append(subFuncs, pb_Product_Keep_BrandCodes)
 		default:
 			return nil, fieldmask.ErrFieldNotFound(field.JsonName)
+		}
+
+		if isSimpleField && len(field.SubFields) > 0 {
+			return nil, fieldmask.PrependParentField(fieldmask.ErrFieldNotFound(field.SubFields[0].JsonName), field.JsonName)
 		}
 	}
 
@@ -141,6 +167,8 @@ func pb_Attribute_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(newMsg
 	var subFuncs []func(newMsg *pb.Attribute, msg *pb.Attribute)
 
 	for _, field := range fieldInfos {
+		isSimpleField := true
+
 		switch field.JsonName {
 		case "id":
 			subFuncs = append(subFuncs, pb_Attribute_Keep_Id)
@@ -149,9 +177,10 @@ func pb_Attribute_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(newMsg
 		case "name":
 			subFuncs = append(subFuncs, pb_Attribute_Keep_Name)
 		case "options":
+			isSimpleField = false
 			keepFunc, err := pb_Option_ComputeKeepFunc(field.SubFields)
 			if err != nil {
-				return nil, err
+				return nil, fieldmask.PrependParentField(err, "options")
 			}
 			subFuncs = append(subFuncs, func(newMsg *pb.Attribute, msg *pb.Attribute) {
 				msgList := make([]*pb.Option, 0, len(msg.Options))
@@ -164,6 +193,10 @@ func pb_Attribute_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(newMsg
 			})
 		default:
 			return nil, fieldmask.ErrFieldNotFound(field.JsonName)
+		}
+
+		if isSimpleField && len(field.SubFields) > 0 {
+			return nil, fieldmask.PrependParentField(fieldmask.ErrFieldNotFound(field.SubFields[0].JsonName), field.JsonName)
 		}
 	}
 
@@ -184,6 +217,8 @@ func pb_Option_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(newMsg *p
 	var subFuncs []func(newMsg *pb.Option, msg *pb.Option)
 
 	for _, field := range fieldInfos {
+		isSimpleField := true
+
 		switch field.JsonName {
 		case "code":
 			subFuncs = append(subFuncs, pb_Option_Keep_Code)
@@ -191,6 +226,10 @@ func pb_Option_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) (func(newMsg *p
 			subFuncs = append(subFuncs, pb_Option_Keep_Name)
 		default:
 			return nil, fieldmask.ErrFieldNotFound(field.JsonName)
+		}
+
+		if isSimpleField && len(field.SubFields) > 0 {
+			return nil, fieldmask.PrependParentField(fieldmask.ErrFieldNotFound(field.SubFields[0].JsonName), field.JsonName)
 		}
 	}
 

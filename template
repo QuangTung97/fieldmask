@@ -28,6 +28,12 @@ func New{{ .StructName }}(fields []string) (*{{ .StructName}}, error) {
 		keepFunc: keepFunc,
 	}, nil
 }
+
+func (fm *{{.StructName}}) Mask(msg *{{ .QualifiedType }}) *{{ .QualifiedType }} {
+	newMsg := &{{ .QualifiedType }}{}
+	fm.keepFunc(newMsg, msg)
+	return newMsg
+}
 {{ end }}
 
 {{ range .KeepFuncs }}
@@ -41,12 +47,18 @@ func {{ .FuncName }}(fieldInfos []fieldmask.FieldInfo) ({{ .FuncType }}, error) 
 	var subFuncs []{{ .FuncType }}
 
 	for _, field := range fieldInfos {
+		isSimpleField := true
+
 		switch field.JsonName {
 		{{ range .FieldFuncs }}case "{{ .JsonName }}":
 			{{ .AppendStmt }}
 		{{ end -}}
 		default:
 			return nil, fieldmask.ErrFieldNotFound(field.JsonName)
+		}
+
+		if isSimpleField && len(field.SubFields) > 0 {
+			return nil, fieldmask.PrependParentField(fieldmask.ErrFieldNotFound(field.SubFields[0].JsonName), field.JsonName)
 		}
 	}
 

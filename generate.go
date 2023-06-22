@@ -17,6 +17,7 @@ type typeAndNewFunc struct {
 	StructName          string
 	FuncType            string
 	ComputeKeepFuncName string
+	QualifiedType       string
 }
 
 type keepFunc struct {
@@ -97,22 +98,35 @@ func getFuncTypeSignature(e *objectInfo) string {
 	return fmt.Sprintf("func (newMsg *%s, msg *%s)", typeName, typeName)
 }
 
+func getKeepFuncStmt(funcName string, parentField string) string {
+	result := fmt.Sprintf(`
+isSimpleField = false
+keepFunc, err := %s(field.SubFields)
+if err != nil {
+	return nil, fieldmask.PrependParentField(err, "%s")
+}
+`, funcName, parentField)
+	return strings.TrimSpace(result)
+}
+
 func appendStmtForObject(obj *objectInfo, field objectField) string {
 	objectType := getQualifiedTypeName(obj)
 	subObjectType := getQualifiedTypeName(field.info)
 	funcName := getComputeKeepFuncName(field.info)
 
 	result := fmt.Sprintf(`
-keepFunc, err := %s(field.SubFields)
-if err != nil {
-	return nil, err
-}
+%s
 subFuncs = append(subFuncs, func (newMsg *%s, msg *%s) {
 	newSubMsg := &%s{}
 	keepFunc(newSubMsg, msg.%s)
 	newMsg.%s = newSubMsg
 })
-`, funcName, objectType, objectType, subObjectType, field.name, field.name)
+`,
+		getKeepFuncStmt(funcName, field.jsonName),
+		objectType, objectType,
+		subObjectType,
+		field.name, field.name,
+	)
 
 	return strings.TrimSpace(result)
 }
@@ -123,10 +137,7 @@ func appendStmtForArrayOfObjects(obj *objectInfo, field objectField) string {
 	funcName := getComputeKeepFuncName(field.info)
 
 	result := fmt.Sprintf(`
-keepFunc, err := %s(field.SubFields)
-if err != nil {
-	return nil, err
-}
+%s
 subFuncs = append(subFuncs, func(newMsg *%s, msg *%s) {
 	msgList := make([]*%s, 0, len(msg.%s))
 	for _, e := range msg.%s {
@@ -136,7 +147,13 @@ subFuncs = append(subFuncs, func(newMsg *%s, msg *%s) {
 	}
 	newMsg.%s = msgList
 })
-`, funcName, objectType, objectType, subObjectType, field.name, field.name, subObjectType, field.name)
+`,
+		getKeepFuncStmt(funcName, field.jsonName),
+		objectType, objectType,
+		subObjectType,
+		field.name, field.name,
+		subObjectType, field.name,
+	)
 
 	return strings.TrimSpace(result)
 }
@@ -252,6 +269,7 @@ func generateCode(
 				StructName:          e.typeName + "FieldMask",
 				FuncType:            getFuncTypeSignature(e),
 				ComputeKeepFuncName: getComputeKeepFuncName(e),
+				QualifiedType:       getQualifiedTypeName(e),
 			}
 		}),
 		KeepFuncs: mapSlice(infos, buildKeepFunc),
