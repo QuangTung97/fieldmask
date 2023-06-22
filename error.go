@@ -1,6 +1,9 @@
 package fieldmask
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // ===========================================
 // Field Not Found Error
@@ -68,3 +71,9 @@ func PrependParentField(err error, parentField string) error {
 	}
 	return updater.PrependField(parentField)
 }
+
+// ErrExceedMaxFields ...
+var ErrExceedMaxFields = errors.New("fieldmask: exceeded max number of fields")
+
+// ErrExceedMaxDepth ...
+var ErrExceedMaxDepth = errors.New("fieldmask: exceeded max number of field depth")

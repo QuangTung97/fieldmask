@@ -322,4 +322,14 @@ func TestProductFieldMask(t *testing.T) {
 		assert.Equal(t, fieldmask.ErrFieldNotFound("attributes.options.code.invalid"), err)
 		assert.Nil(t, fm)
 	})
+
+	t.Run("reach limit max fields", func(t *testing.T) {
+		fm, err := NewProductFieldMask([]string{
+			"sku",
+			"provider.id",
+			"provider.name",
+		}, fieldmask.WithMaxFields(3))
+		assert.Equal(t, fieldmask.ErrExceedMaxFields, err)
+		assert.Nil(t, fm)
+	})
 }

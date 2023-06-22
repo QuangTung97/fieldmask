@@ -1,7 +1,6 @@
 package fieldmask
 
 import (
-	"errors"
 	"strings"
 )
 
@@ -44,7 +43,7 @@ func (p *fieldInfoParser) addIfNotExisted(fieldName string, isSubField bool) err
 
 		*p.fieldCount++
 		if *p.fieldCount > p.options.maxFields {
-			return errors.New("fieldmask: exceeded max number of fields")
+			return ErrExceedMaxFields
 		}
 		return nil
 	}
@@ -59,7 +58,7 @@ func (p *fieldInfoParser) addIfNotExisted(fieldName string, isSubField bool) err
 
 func computeFields(fullField string, result *fieldInfoParser, depth int) error {
 	if depth > result.options.maxDepth {
-		return errors.New("fieldmask: exceeded max number of field depth")
+		return ErrExceedMaxDepth
 	}
 
 	index := strings.Index(fullField, ".")
