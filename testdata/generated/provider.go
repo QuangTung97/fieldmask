@@ -7,18 +7,18 @@ import (
 	pb "github.com/QuangTung97/fieldmask/testdata/pb"
 )
 
-type ProviderFieldMask struct {
-	keepFunc func(newMsg *pb.Provider, msg *pb.Provider)
+type ProviderInfoFieldMask struct {
+	keepFunc func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo)
 }
 
-func NewProviderFieldMask(fields []string) (*ProviderFieldMask, error) {
+func NewProviderInfoFieldMask(fields []string) (*ProviderInfoFieldMask, error) {
 	fieldInfos, err := fieldmask.ComputeFieldInfos(fields)
 	if err != nil {
 		return nil, err
 	}
 
-	return &ProviderFieldMask{
-		keepFunc: pb_Provider_ComputeKeepFunc(fieldInfos),
+	return &ProviderInfoFieldMask{
+		keepFunc: pb_ProviderInfo_ComputeKeepFunc(fieldInfos),
 	}, nil
 }
 
@@ -37,29 +37,29 @@ func NewProductFieldMask(fields []string) (*ProductFieldMask, error) {
 	}, nil
 }
 
-func pb_Provider_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *pb.Provider, msg *pb.Provider) {
+func pb_ProviderInfo_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo) {
 	if len(fieldInfos) == 0 {
-		return func(newMsg *pb.Provider, msg *pb.Provider) {
+		return func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo) {
 			*newMsg = *msg
 		}
 	}
 
-	var subFuncs []func(newMsg *pb.Provider, msg *pb.Provider)
+	var subFuncs []func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo)
 
 	for _, field := range fieldInfos {
 		switch field.JsonName {
 		case "id":
-			subFuncs = append(subFuncs, pb_Provider_Keep_Id)
+			subFuncs = append(subFuncs, pb_ProviderInfo_Keep_Id)
 		case "name":
-			subFuncs = append(subFuncs, pb_Provider_Keep_Name)
+			subFuncs = append(subFuncs, pb_ProviderInfo_Keep_Name)
 		case "logo":
-			subFuncs = append(subFuncs, pb_Provider_Keep_Logo)
+			subFuncs = append(subFuncs, pb_ProviderInfo_Keep_Logo)
 		case "imageUrl":
-			subFuncs = append(subFuncs, pb_Provider_Keep_ImageUrl)
+			subFuncs = append(subFuncs, pb_ProviderInfo_Keep_ImageUrl)
 		}
 	}
 
-	return func(newMsg *pb.Provider, msg *pb.Provider) {
+	return func(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo) {
 		for _, fn := range subFuncs {
 			fn(newMsg, msg)
 		}
@@ -81,9 +81,9 @@ func pb_Product_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *p
 			subFuncs = append(subFuncs, pb_Product_Keep_Sku)
 		case "provider":
 			subFuncs = append(subFuncs, func(newMsg *pb.Product, msg *pb.Product) {
-				keepFunc := pb_Provider_ComputeKeepFunc(field.SubFields)
+				keepFunc := pb_ProviderInfo_ComputeKeepFunc(field.SubFields)
 
-				newSubMsg := &pb.Provider{}
+				newSubMsg := &pb.ProviderInfo{}
 				keepFunc(newSubMsg, msg.Provider)
 				newMsg.Provider = newSubMsg
 			})
@@ -95,7 +95,7 @@ func pb_Product_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *p
 				for _, e := range msg.Attributes {
 					newSubMsg := &pb.Attribute{}
 					keepFunc(newSubMsg, e)
-					msgList = append(msgList)
+					msgList = append(msgList, newSubMsg)
 				}
 				newMsg.Attributes = msgList
 			})
@@ -126,6 +126,18 @@ func pb_Attribute_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg 
 			subFuncs = append(subFuncs, pb_Attribute_Keep_Code)
 		case "name":
 			subFuncs = append(subFuncs, pb_Attribute_Keep_Name)
+		case "options":
+			subFuncs = append(subFuncs, func(newMsg *pb.Attribute, msg *pb.Attribute) {
+				keepFunc := pb_Option_ComputeKeepFunc(field.SubFields)
+
+				msgList := make([]*pb.Option, 0, len(msg.Options))
+				for _, e := range msg.Options {
+					newSubMsg := &pb.Option{}
+					keepFunc(newSubMsg, e)
+					msgList = append(msgList, newSubMsg)
+				}
+				newMsg.Options = msgList
+			})
 		}
 	}
 
@@ -136,23 +148,48 @@ func pb_Attribute_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg 
 	}
 }
 
+func pb_Option_ComputeKeepFunc(fieldInfos []fieldmask.FieldInfo) func(newMsg *pb.Option, msg *pb.Option) {
+	if len(fieldInfos) == 0 {
+		return func(newMsg *pb.Option, msg *pb.Option) {
+			*newMsg = *msg
+		}
+	}
+
+	var subFuncs []func(newMsg *pb.Option, msg *pb.Option)
+
+	for _, field := range fieldInfos {
+		switch field.JsonName {
+		case "code":
+			subFuncs = append(subFuncs, pb_Option_Keep_Code)
+		case "name":
+			subFuncs = append(subFuncs, pb_Option_Keep_Name)
+		}
+	}
+
+	return func(newMsg *pb.Option, msg *pb.Option) {
+		for _, fn := range subFuncs {
+			fn(newMsg, msg)
+		}
+	}
+}
+
 // =========================================
-// Provider Keep Functions
+// ProviderInfo Keep Functions
 // =========================================
 
-func pb_Provider_Keep_Id(newMsg *pb.Provider, msg *pb.Provider) {
+func pb_ProviderInfo_Keep_Id(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo) {
 	newMsg.Id = msg.Id
 }
 
-func pb_Provider_Keep_Name(newMsg *pb.Provider, msg *pb.Provider) {
+func pb_ProviderInfo_Keep_Name(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo) {
 	newMsg.Name = msg.Name
 }
 
-func pb_Provider_Keep_Logo(newMsg *pb.Provider, msg *pb.Provider) {
+func pb_ProviderInfo_Keep_Logo(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo) {
 	newMsg.Logo = msg.Logo
 }
 
-func pb_Provider_Keep_ImageUrl(newMsg *pb.Provider, msg *pb.Provider) {
+func pb_ProviderInfo_Keep_ImageUrl(newMsg *pb.ProviderInfo, msg *pb.ProviderInfo) {
 	newMsg.ImageUrl = msg.ImageUrl
 }
 
@@ -177,5 +214,17 @@ func pb_Attribute_Keep_Code(newMsg *pb.Attribute, msg *pb.Attribute) {
 }
 
 func pb_Attribute_Keep_Name(newMsg *pb.Attribute, msg *pb.Attribute) {
+	newMsg.Name = msg.Name
+}
+
+// =========================================
+// Option Keep Functions
+// =========================================
+
+func pb_Option_Keep_Code(newMsg *pb.Option, msg *pb.Option) {
+	newMsg.Code = msg.Code
+}
+
+func pb_Option_Keep_Name(newMsg *pb.Option, msg *pb.Option) {
 	newMsg.Name = msg.Name
 }

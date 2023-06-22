@@ -6,19 +6,41 @@ import (
 	"strings"
 )
 
-type subFieldType int
+type fieldType int
 
 const (
-	subFieldTypeSimple subFieldType = iota
-	subFieldTypeObject
-	subFieldTypeArray
+	fieldTypeSimple fieldType = iota
+	fieldTypeObject
+	fieldTypeArrayOfObjects
+	fieldTypeArrayOfPrimitives
 )
+
+type objectInfo struct {
+	typeName   string
+	importPath string
+
+	subFields []objectField
+
+	alias string // computed by generate.go
+}
+
+func (o objectInfo) getKey() objectKey {
+	return objectKey{
+		typeName:   o.typeName,
+		importPath: o.importPath,
+	}
+}
+
+type objectKey struct {
+	typeName   string
+	importPath string
+}
 
 type objectField struct {
 	name      string
 	jsonName  string
-	subFields []objectField
-	subType   subFieldType
+	fieldType fieldType
+	info      *objectInfo
 }
 
 func getJsonName(field reflect.StructField) (string, bool) {
@@ -45,6 +67,14 @@ func getJsonName(field reflect.StructField) (string, bool) {
 	return jsonName, true
 }
 
+func parseObjectInfo(msgType reflect.Type) *objectInfo {
+	return &objectInfo{
+		typeName:   msgType.Name(),
+		importPath: msgType.PkgPath(),
+		subFields:  parseMessageFields(msgType),
+	}
+}
+
 func parseMessageFields(structType reflect.Type) []objectField {
 	var result []objectField
 	for i := 0; i < structType.NumField(); i++ {
@@ -55,33 +85,35 @@ func parseMessageFields(structType reflect.Type) []objectField {
 			continue
 		}
 
-		var subFields []objectField
-		subType := subFieldTypeSimple
+		var info *objectInfo
+		subType := fieldTypeSimple
 
 		switch field.Type.Kind() {
 		case reflect.Pointer:
-			subFields = parseMessageFields(field.Type.Elem())
-			subType = subFieldTypeObject
+			info = parseObjectInfo(field.Type.Elem())
+			subType = fieldTypeObject
 
 		case reflect.Slice:
-			subFields = parseMessageFields(field.Type.Elem().Elem())
-			subType = subFieldTypeArray
+			info = parseObjectInfo(field.Type.Elem().Elem())
+			subType = fieldTypeArrayOfObjects
 		}
 
 		result = append(result, objectField{
 			name:      field.Name,
 			jsonName:  jsonName,
-			subFields: subFields,
-			subType:   subType,
+			info:      info,
+			fieldType: subType,
 		})
 	}
 	return result
 }
 
-func parseMessage(msg proto.Message) []objectField {
+func parseMessage(msg proto.Message) *objectInfo {
 	msgType := reflect.TypeOf(msg)
-	// TODO Check pointer
-	msgType = msgType.Elem()
+	if msgType == nil || msgType.Kind() != reflect.Pointer {
+		panic("invalid message type")
+	}
 
-	return parseMessageFields(msgType)
+	msgType = msgType.Elem()
+	return parseObjectInfo(msgType)
 }

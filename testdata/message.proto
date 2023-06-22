@@ -4,7 +4,7 @@ package testdata.v1;
 
 option go_package = "github.com/QuangTung97/fieldmask/testdata/pb;pb";
 
-message Provider {
+message ProviderInfo {
   int32 id = 1;
   string name = 2;
   string logo = 3;
@@ -25,6 +25,6 @@ message Attribute {
 
 message Product {
   string sku = 1;
-  Provider provider = 2;
+  ProviderInfo provider = 2;
   repeated Attribute attributes = 3;
 }
