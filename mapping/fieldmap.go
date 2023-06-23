@@ -28,7 +28,7 @@ type FieldMap[F Field, T MapType[F]] struct {
 	fields     []F
 	structRoot F
 
-	children   []int64
+	children   [][]F
 	parentList []F
 	fieldNames []string
 	structTags map[string][]string
@@ -92,6 +92,16 @@ func New[F Field, T MapType[F]](options ...Option) *FieldMap[F, T] {
 	f.traverse(val, &ordinal, info)
 
 	f.mapping = mapping
+
+	f.children = make([][]F, len(f.fields))
+
+	for i, parent := range f.parentList {
+		if parent <= 0 {
+			continue
+		}
+		parentIndex := parent - 1
+		f.children[parentIndex] = append(f.children[parentIndex], F(i+1))
+	}
 
 	return f
 }
@@ -206,7 +216,6 @@ func (f *FieldMap[F, T]) handleSingleField(
 	f.fields = append(f.fields, f.getField(*ordinal))
 
 	if parentInfo.isParentField(i) {
-		f.children = append(f.children, int64(val.NumField()-1))
 		f.parentList = append(f.parentList, parentInfo.prevRoot)
 		f.fieldNames = append(f.fieldNames, parentInfo.fieldName)
 
@@ -214,7 +223,6 @@ func (f *FieldMap[F, T]) handleSingleField(
 			f.structTags[tag] = append(f.structTags[tag], parentInfo.structTags[tag])
 		}
 	} else {
-		f.children = append(f.children, 0)
 		f.parentList = append(f.parentList, rootField)
 		f.fieldNames = append(f.fieldNames, fieldName)
 
@@ -270,13 +278,17 @@ func (*FieldMap[F, T]) indexOf(field F) int64 {
 // IsStruct ...
 func (f *FieldMap[F, T]) IsStruct(field F) bool {
 	index := f.indexOf(field)
-	return f.children[index] > 0
+	return len(f.children[index]) > 0
 }
 
 // ChildrenOf ...
 func (f *FieldMap[F, T]) ChildrenOf(field F) []F {
 	index := f.indexOf(field)
-	return f.fields[index+1 : index+1+f.children[index]]
+	result := make([]F, 0, len(f.children[index]))
+	for _, childField := range f.children[index] {
+		result = append(result, childField)
+	}
+	return result
 }
 
 // ParentOf ...
@@ -381,11 +393,12 @@ func (f *FieldMap[F, T]) fromMaskedFieldsRecursive(
 			return nil, fields.ErrFieldNotFound(maskedField.FieldName)
 		}
 		if len(maskedField.SubFields) > 0 {
-			result, err := f.fromMaskedFieldsRecursive(subTagMapping, maskedField.SubFields, result)
+			var err error
+			result, err = f.fromMaskedFieldsRecursive(subTagMapping, maskedField.SubFields, result)
 			if err != nil {
 				return nil, fields.PrependParentField(err, maskedField.FieldName)
 			}
-			return result, nil
+			continue
 		}
 		result = append(result, subTagMapping.field)
 	}

@@ -47,6 +47,16 @@ func (d productData) GetRoot() field {
 	return d.Root
 }
 
+type veryComplexData struct {
+	Root    field
+	Seller  sellerData  `json:"seller"`
+	Product productData `json:"product"`
+}
+
+func (d veryComplexData) GetRoot() field {
+	return d.Root
+}
+
 func TestFieldMap__GetMapping(t *testing.T) {
 	t.Run("simple-struct", func(t *testing.T) {
 		fm := New[field, simpleData]()
@@ -436,5 +446,39 @@ func TestFieldMap__FromMaskedFields(t *testing.T) {
 			}()
 		}
 		wg.Wait()
+	})
+
+	t.Run("very complex struct", func(t *testing.T) {
+		fm := New[field, veryComplexData](WithStructTags("json"))
+
+		mapping := fm.GetMapping()
+
+		result, err := fm.FromMaskedFields("json", []fields.FieldInfo{
+			{
+				FieldName: "seller",
+				SubFields: []fields.FieldInfo{
+					{
+						FieldName: "attr",
+						SubFields: []fields.FieldInfo{
+							{FieldName: "code"},
+						},
+					},
+				},
+			},
+			{
+				FieldName: "product",
+				SubFields: []fields.FieldInfo{
+					{FieldName: "sku"},
+					{FieldName: "name"},
+				},
+			},
+		})
+
+		assert.Equal(t, nil, err)
+		assert.Equal(t, []field{
+			mapping.Seller.Attr.Code,
+			mapping.Product.Sku,
+			mapping.Product.Name,
+		}, result)
 	})
 }
