@@ -264,3 +264,87 @@ func TestParser_Complex_Object__With_Limited_Fields__Not_Found_Sub_Field(t *test
 		parseMessages(NewProtoMessageWithFields(&pb.Product{}, limitedToFields))
 	})
 }
+
+func TestParser_Complex_Object__With_Only_Root_Field(t *testing.T) {
+	limitedToFields := []string{
+		"sku",
+		"provider",
+	}
+
+	infos := parseMessages(NewProtoMessageWithFields(&pb.Product{}, limitedToFields))
+	assert.Equal(t, 1, len(infos))
+
+	info := infos[0]
+
+	assert.Equal(t, []objectField{
+		{
+			name:      "Sku",
+			jsonName:  "sku",
+			fieldType: fieldTypeSimple,
+		},
+		{
+			name:      "Provider",
+			jsonName:  "provider",
+			fieldType: fieldTypeSimple,
+		},
+	}, info.subFields)
+}
+
+func TestParser_Both_Simple_And_Complex__With_Limited_Fields(t *testing.T) {
+	infos := parseMessages(
+		NewProtoMessageWithFields(&pb.Product{}, []string{
+			"sku",
+			"provider",
+		}),
+		NewProtoMessage(&pb.ProviderInfo{}),
+	)
+	assert.Equal(t, 2, len(infos))
+
+	assert.Equal(t, []objectField{
+		{
+			name:      "Sku",
+			jsonName:  "sku",
+			fieldType: fieldTypeSimple,
+		},
+		{
+			name:      "Provider",
+			jsonName:  "provider",
+			fieldType: fieldTypeSimple,
+		},
+	}, infos[0].subFields)
+
+	assert.Equal(t, []objectField{
+		{
+			name:      "Id",
+			jsonName:  "id",
+			fieldType: fieldTypeSimple,
+		},
+		{
+			name:      "Name",
+			jsonName:  "name",
+			fieldType: fieldTypeSimple,
+		},
+		{
+			name:      "Logo",
+			jsonName:  "logo",
+			fieldType: fieldTypeSimple,
+		},
+		{
+			name:      "ImageUrl",
+			jsonName:  "imageUrl",
+			fieldType: fieldTypeSimple,
+		},
+	}, infos[1].subFields)
+}
+
+func TestParser_Both_Simple_And_Complex__With_Limited_Fields__Conflicted(t *testing.T) {
+	assert.PanicsWithValue(t, "conflicted limited to fields declaration for type 'ProviderInfo'", func() {
+		parseMessages(
+			NewProtoMessageWithFields(&pb.Product{}, []string{
+				"sku",
+				"provider.id",
+			}),
+			NewProtoMessageWithFields(&pb.ProviderInfo{}, []string{"name"}),
+		)
+	})
+}

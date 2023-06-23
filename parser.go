@@ -86,7 +86,7 @@ func isSpecialPackage(importPath string) bool {
 
 func parseObjectInfo(
 	msgType reflect.Type, parsedObjects map[objectKey]*objectInfo,
-	subType *fieldType, usedFields inUseFields,
+	subType *fieldType,
 ) *objectInfo {
 	obj := &objectInfo{
 		typeName:   msgType.Name(),
@@ -103,17 +103,14 @@ func parseObjectInfo(
 		return nil
 	}
 
-	obj.subFields = parseMessageFields(msgType, parsedObjects, usedFields)
+	obj.subFields = parseMessageFields(msgType, parsedObjects)
 	parsedObjects[obj.getKey()] = obj
 	return obj
 }
 
 func parseMessageFields(
 	structType reflect.Type, parsedObjects map[objectKey]*objectInfo,
-	usedFields inUseFields,
 ) []objectField {
-	allowFunc := usedFields.toAllowFunc()
-
 	var result []objectField
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
@@ -123,24 +120,19 @@ func parseMessageFields(
 			continue
 		}
 
-		subUsedFields, allow := allowFunc(jsonName)
-		if !allow {
-			continue
-		}
-
 		var info *objectInfo
 		subType := fieldTypeSimple
 
 		switch field.Type.Kind() {
 		case reflect.Pointer:
 			subType = fieldTypeObject
-			info = parseObjectInfo(field.Type.Elem(), parsedObjects, &subType, subUsedFields)
+			info = parseObjectInfo(field.Type.Elem(), parsedObjects, &subType)
 
 		case reflect.Slice:
 			elemType := field.Type.Elem()
 			if elemType.Kind() == reflect.Pointer {
 				subType = fieldTypeArrayOfObjects
-				info = parseObjectInfo(elemType.Elem(), parsedObjects, &subType, subUsedFields)
+				info = parseObjectInfo(elemType.Elem(), parsedObjects, &subType)
 			} else {
 				subType = fieldTypeArrayOfPrimitives
 			}
@@ -153,8 +145,6 @@ func parseMessageFields(
 			fieldType: subType,
 		})
 	}
-
-	usedFields.checkFieldsExisted(result)
 
 	return result
 }
@@ -191,14 +181,6 @@ type inUseFields struct {
 }
 
 func (u inUseFields) toAllowFunc() func(jsonName string) (inUseFields, bool) {
-	if u.allowAll {
-		return func(jsonName string) (inUseFields, bool) {
-			return inUseFields{
-				allowAll: true,
-			}, true
-		}
-	}
-
 	set := map[string]inUseFields{}
 	for _, f := range u.limitedTo {
 		set[f.FieldName] = inUseFields{
@@ -226,6 +208,44 @@ func (u inUseFields) checkFieldsExisted(objectFields []objectField) {
 	}
 }
 
+func (u inUseFields) traverseInfo(info *objectInfo, traversedObjects map[objectKey]struct{}) {
+	if info == nil {
+		return
+	}
+
+	objKey := info.getKey()
+	_, existed := traversedObjects[objKey]
+	if existed {
+		panic(fmt.Sprintf("conflicted limited to fields declaration for type '%s'", info.typeName))
+	}
+	traversedObjects[objKey] = struct{}{}
+
+	if u.allowAll {
+		return
+	}
+
+	u.checkFieldsExisted(info.subFields)
+
+	allowFunc := u.toAllowFunc()
+
+	newSubFields := make([]objectField, 0)
+	for _, subField := range info.subFields {
+		subUsedFields, allow := allowFunc(subField.jsonName)
+		if !allow {
+			continue
+		}
+		if subField.info != nil && len(subUsedFields.limitedTo) == 0 {
+			subField.info = nil
+			subField.fieldType = fieldTypeSimple
+		} else {
+			subUsedFields.traverseInfo(subField.info, traversedObjects)
+		}
+
+		newSubFields = append(newSubFields, subField)
+	}
+	info.subFields = newSubFields
+}
+
 func parseMessages(msgList ...ProtoMessage) []*objectInfo {
 	var result []*objectInfo
 
@@ -237,6 +257,16 @@ func parseMessages(msgList ...ProtoMessage) []*objectInfo {
 			panic("invalid message type")
 		}
 
+		msgType = msgType.Elem()
+		info := parseObjectInfo(msgType, parsedObjects, nil)
+		result = append(result, info)
+	}
+
+	traversedObjects := map[objectKey]struct{}{}
+
+	for i, info := range result {
+		msg := msgList[i]
+
 		allowAllFields := true
 		if len(msg.limitedTo) > 0 {
 			allowAllFields = false
@@ -246,10 +276,8 @@ func parseMessages(msgList ...ProtoMessage) []*objectInfo {
 			limitedTo: msg.limitedTo,
 			allowAll:  allowAllFields,
 		}
-
-		msgType = msgType.Elem()
-		info := parseObjectInfo(msgType, parsedObjects, nil, usedFields)
-		result = append(result, info)
+		usedFields.traverseInfo(info, traversedObjects)
 	}
+
 	return result
 }
