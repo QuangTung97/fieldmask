@@ -153,6 +153,12 @@ func pb_Product_ComputeKeepFunc(fieldInfos []fields.FieldInfo) (func(newMsg *pb.
 			subFuncs = append(subFuncs, pb_Product_Keep_SellerIds)
 		case "brandCodes":
 			subFuncs = append(subFuncs, pb_Product_Keep_BrandCodes)
+		case "createdAt":
+			subFuncs = append(subFuncs, pb_Product_Keep_CreatedAt)
+		case "quantity":
+			subFuncs = append(subFuncs, pb_Product_Keep_Quantity)
+		case "stocks":
+			subFuncs = append(subFuncs, pb_Product_Keep_Stocks)
 		default:
 			return nil, fields.ErrFieldNotFound(field.FieldName)
 		}
@@ -286,6 +292,18 @@ func pb_Product_Keep_SellerIds(newMsg *pb.Product, msg *pb.Product) {
 
 func pb_Product_Keep_BrandCodes(newMsg *pb.Product, msg *pb.Product) {
 	newMsg.BrandCodes = msg.BrandCodes
+}
+
+func pb_Product_Keep_CreatedAt(newMsg *pb.Product, msg *pb.Product) {
+	newMsg.CreatedAt = msg.CreatedAt
+}
+
+func pb_Product_Keep_Quantity(newMsg *pb.Product, msg *pb.Product) {
+	newMsg.Quantity = msg.Quantity
+}
+
+func pb_Product_Keep_Stocks(newMsg *pb.Product, msg *pb.Product) {
+	newMsg.Stocks = msg.Stocks
 }
 
 // =========================================

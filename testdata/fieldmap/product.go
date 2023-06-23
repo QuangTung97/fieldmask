@@ -21,6 +21,9 @@ type ProductFieldMap struct {
 	Attributes AttributeFieldMap    `json:"attributes"`
 	SellerIds  Field                `json:"sellerIds"`
 	BrandCodes Field                `json:"brandCodes"`
+	CreatedAt  Field                `json:"createdAt"`
+	Quantity   Field                `json:"quantity"`
+	Stocks     Field                `json:"stocks"`
 }
 
 type AttributeFieldMap struct {

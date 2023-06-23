@@ -13,7 +13,13 @@ const (
 	fieldTypeObject
 	fieldTypeArrayOfObjects
 	fieldTypeArrayOfPrimitives
+	fieldTypeSpecialField
 )
+
+var ignoredImportPathPrefixes = []string{
+	"github.com/golang/protobuf/ptypes",
+	"github.com/gogo/protobuf/types",
+}
 
 type objectInfo struct {
 	typeName   string
@@ -67,7 +73,18 @@ func getJSONName(field reflect.StructField) (string, bool) {
 	return jsonName, true
 }
 
-func parseObjectInfo(msgType reflect.Type, parsedObjects map[objectKey]*objectInfo) *objectInfo {
+func isSpecialPackage(importPath string) bool {
+	for _, prefix := range ignoredImportPathPrefixes {
+		if strings.HasPrefix(importPath, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func parseObjectInfo(
+	msgType reflect.Type, parsedObjects map[objectKey]*objectInfo, subType *fieldType,
+) *objectInfo {
 	obj := &objectInfo{
 		typeName:   msgType.Name(),
 		importPath: msgType.PkgPath(),
@@ -76,6 +93,11 @@ func parseObjectInfo(msgType reflect.Type, parsedObjects map[objectKey]*objectIn
 	existedObj, existed := parsedObjects[obj.getKey()]
 	if existed {
 		return existedObj
+	}
+
+	if isSpecialPackage(obj.importPath) {
+		*subType = fieldTypeSpecialField
+		return nil
 	}
 
 	obj.subFields = parseMessageFields(msgType, parsedObjects)
@@ -98,14 +120,14 @@ func parseMessageFields(structType reflect.Type, parsedObjects map[objectKey]*ob
 
 		switch field.Type.Kind() {
 		case reflect.Pointer:
-			info = parseObjectInfo(field.Type.Elem(), parsedObjects)
 			subType = fieldTypeObject
+			info = parseObjectInfo(field.Type.Elem(), parsedObjects, &subType)
 
 		case reflect.Slice:
 			elemType := field.Type.Elem()
 			if elemType.Kind() == reflect.Pointer {
-				info = parseObjectInfo(elemType.Elem(), parsedObjects)
 				subType = fieldTypeArrayOfObjects
+				info = parseObjectInfo(elemType.Elem(), parsedObjects, &subType)
 			} else {
 				subType = fieldTypeArrayOfPrimitives
 			}
@@ -133,7 +155,7 @@ func parseMessages(msgList ...proto.Message) []*objectInfo {
 		}
 
 		msgType = msgType.Elem()
-		info := parseObjectInfo(msgType, parsedObjects)
+		info := parseObjectInfo(msgType, parsedObjects, nil)
 		result = append(result, info)
 	}
 	return result

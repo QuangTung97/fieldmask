@@ -130,6 +130,21 @@ func TestParser_Complex_Object(t *testing.T) {
 			jsonName:  "brandCodes",
 			fieldType: fieldTypeArrayOfPrimitives,
 		},
+		{
+			name:      "CreatedAt",
+			jsonName:  "createdAt",
+			fieldType: fieldTypeSpecialField,
+		},
+		{
+			name:      "Quantity",
+			jsonName:  "quantity",
+			fieldType: fieldTypeSpecialField,
+		},
+		{
+			name:      "Stocks",
+			jsonName:  "stocks",
+			fieldType: fieldTypeSpecialField,
+		},
 	}, info.subFields)
 }
 

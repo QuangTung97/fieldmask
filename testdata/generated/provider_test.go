@@ -3,6 +3,7 @@ package generated
 import (
 	"github.com/QuangTung97/fieldmask/fields"
 	"github.com/QuangTung97/fieldmask/testdata/pb"
+	"github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -70,6 +71,8 @@ func TestProviderFieldMask(t *testing.T) {
 }
 
 func TestProductFieldMask(t *testing.T) {
+	ts := types.TimestampNow()
+
 	product := &pb.Product{
 		Sku: "SKU01",
 		Provider: &pb.ProviderInfo{
@@ -108,6 +111,12 @@ func TestProductFieldMask(t *testing.T) {
 		},
 		SellerIds:  []int32{51, 52},
 		BrandCodes: []string{"BRAND01", "BRAND02"},
+		CreatedAt:  ts,
+		Quantity:   &types.DoubleValue{Value: 886},
+		Stocks: []*types.Int32Value{
+			nil,
+			{Value: 228},
+		},
 	}
 
 	t.Run("empty", func(t *testing.T) {
@@ -283,8 +292,8 @@ func TestProductFieldMask(t *testing.T) {
 			"provider.id", "provider.name", "provider.logo", "provider.imageUrl",
 			"attributes.id", "attributes.name", "attributes.code",
 			"attributes.options.code", "attributes.options.name",
-			"sellerIds",
-			"brandCodes",
+			"sellerIds", "brandCodes",
+			"createdAt", "quantity", "stocks",
 		})
 		assert.Equal(t, nil, err)
 

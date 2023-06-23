@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package testdata.v1;
 
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+
 option go_package = "github.com/QuangTung97/fieldmask/testdata/pb;pb";
 
 message ProviderInfo {
@@ -29,4 +32,7 @@ message Product {
   repeated Attribute attributes = 3;
   repeated int32 seller_ids = 4;
   repeated string brand_codes = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.DoubleValue quantity = 7;
+  repeated google.protobuf.Int32Value stocks = 8;
 }
