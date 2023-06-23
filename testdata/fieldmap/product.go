@@ -13,6 +13,10 @@ type ProviderDataFieldMap struct {
 	ImageUrl Field `json:"imageUrl"`
 }
 
+func (f ProviderDataFieldMap) GetRoot() Field {
+	return f.Root
+}
+
 type ProductFieldMap struct {
 	Root Field
 
@@ -26,6 +30,10 @@ type ProductFieldMap struct {
 	Stocks     Field                `json:"stocks"`
 }
 
+func (f ProductFieldMap) GetRoot() Field {
+	return f.Root
+}
+
 type AttributeFieldMap struct {
 	Root Field
 
@@ -35,9 +43,17 @@ type AttributeFieldMap struct {
 	Options OptionFieldMap `json:"options"`
 }
 
+func (f AttributeFieldMap) GetRoot() Field {
+	return f.Root
+}
+
 type OptionFieldMap struct {
 	Root Field
 
 	Code Field `json:"code"`
 	Name Field `json:"name"`
+}
+
+func (f OptionFieldMap) GetRoot() Field {
+	return f.Root
 }

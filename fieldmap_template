@@ -12,4 +12,9 @@ type {{ .StructName }} struct {
 	{{ .Name }} {{ .FieldType }} `json:"{{ .JSONTag }}"`
 	{{ end -}}
 }
+
+func (f {{ .StructName }}) GetRoot() Field {
+	return f.Root
+}
+
 {{ end }}
