@@ -35,6 +35,7 @@ func (p *fieldInfoParser) clone() *fieldInfoParser {
 	}
 }
 
+//revive:disable-next-line:flag-parameter
 func (p *fieldInfoParser) addIfNotExisted(fieldName string, isSubField bool) error {
 	subParser, ok := p.subFields[fieldName]
 	if !ok {

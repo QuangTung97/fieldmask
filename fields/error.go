@@ -59,6 +59,7 @@ var _ FieldErrorPrepend = DuplicatedFieldError{}
 // Prepend Parent Field
 // ===========================================
 
+// FieldErrorPrepend ...
 type FieldErrorPrepend interface {
 	PrependField(parentField string) error
 }

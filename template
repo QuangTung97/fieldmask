@@ -56,7 +56,7 @@ func {{ .FuncName }}(fieldInfos []fields.FieldInfo) ({{ .FuncType }}, error) {
 		isSimpleField := true
 
 		switch field.FieldName {
-		{{ range .FieldFuncs }}case "{{ .JsonName }}":
+		{{ range .FieldFuncs }}case "{{ .JSONName }}":
 			{{ .AppendStmt }}
 		{{ end -}}
 		default:

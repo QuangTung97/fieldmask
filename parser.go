@@ -43,7 +43,7 @@ type objectField struct {
 	info      *objectInfo
 }
 
-func getJsonName(field reflect.StructField) (string, bool) {
+func getJSONName(field reflect.StructField) (string, bool) {
 	tag := field.Tag.Get("protobuf")
 	if len(tag) == 0 {
 		return "", false
@@ -88,7 +88,7 @@ func parseMessageFields(structType reflect.Type, parsedObjects map[objectKey]*ob
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
 
-		jsonName, ok := getJsonName(field)
+		jsonName, ok := getJSONName(field)
 		if !ok {
 			continue
 		}

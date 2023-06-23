@@ -117,7 +117,7 @@ type parentInfoData[F Field] struct {
 	structTags map[string]string
 }
 
-func (p parentInfoData[F]) isParentField(index int) bool {
+func (parentInfoData[F]) isParentField(index int) bool {
 	return index == 0
 }
 
@@ -392,6 +392,7 @@ func (f *FieldMap[F, T]) fromMaskedFieldsRecursive(
 	return result, nil
 }
 
+// FromMaskedFields ...
 func (f *FieldMap[F, T]) FromMaskedFields(
 	tag string, maskedFields []fields.FieldInfo,
 ) ([]F, error) {

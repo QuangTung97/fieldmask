@@ -36,7 +36,7 @@ type implFieldFunc struct {
 }
 
 type fieldKeepFunc struct {
-	JsonName   string
+	JSONName   string
 	AppendStmt string
 
 	fieldName string // is private
@@ -177,7 +177,7 @@ func buildKeepFuncForField(info *objectInfo, subField objectField) fieldKeepFunc
 	}
 
 	return fieldKeepFunc{
-		JsonName:   subField.jsonName,
+		JSONName:   subField.jsonName,
 		AppendStmt: appendStmt,
 
 		fieldName: subField.name,

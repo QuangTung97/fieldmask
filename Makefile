@@ -1,4 +1,4 @@
-.PHONY: generate test lint
+.PHONY: generate test lint install-tools
 
 generate:
 	protoc -I./testdata --gofast_out=paths=source_relative:./testdata/pb message.proto
@@ -13,3 +13,8 @@ test-race:
 
 lint:
 	go fmt ./...
+	go vet ./...
+	revive -config revive.toml -formatter friendly ./...
+
+install-tools:
+	go install github.com/mgechev/revive
