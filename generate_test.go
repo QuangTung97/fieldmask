@@ -14,7 +14,10 @@ var generatedCode string
 func TestGenerate(t *testing.T) {
 	var buf bytes.Buffer
 
-	generateCode(&buf, parseMessages(&pb.ProviderInfo{}, &pb.Product{}), "generated")
+	generateCode(&buf, parseMessages(
+		NewProtoMessage(&pb.ProviderInfo{}),
+		NewProtoMessage(&pb.Product{}),
+	), "generated")
 
 	assert.Equal(t, generatedCode, buf.String())
 }

@@ -15,7 +15,10 @@ func TestGenerateFieldMap(t *testing.T) {
 	var buf bytes.Buffer
 
 	generateFieldMapCode(
-		&buf, parseMessages(&pb.ProviderInfo{}, &pb.Product{}), "fieldmap",
+		&buf, parseMessages(
+			NewProtoMessage(&pb.ProviderInfo{}),
+			NewProtoMessage(&pb.Product{}),
+		), "fieldmap",
 		WithFieldMapRenameType(&pb.ProviderInfo{}, "ProviderData"),
 	)
 

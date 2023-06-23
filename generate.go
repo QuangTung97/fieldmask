@@ -4,7 +4,6 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
-	"github.com/golang/protobuf/proto"
 	"go/format"
 	"io"
 	"os"
@@ -295,7 +294,7 @@ func generateCode(
 // Generate ...
 func Generate(
 	fileName string,
-	protoMessages []proto.Message,
+	protoMessages []ProtoMessage,
 	packageName string,
 ) {
 	file, err := os.Create(fileName)

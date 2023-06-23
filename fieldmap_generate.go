@@ -102,7 +102,7 @@ func generateFieldMapCode(
 // GenerateFieldMap ...
 func GenerateFieldMap(
 	fileName string,
-	protoMessages []proto.Message,
+	protoMessages []ProtoMessage,
 	packageName string,
 	options ...GenerateFieldMapOption,
 ) {

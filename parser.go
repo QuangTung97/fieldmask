@@ -1,6 +1,8 @@
 package fieldmask
 
 import (
+	"fmt"
+	"github.com/QuangTung97/fieldmask/fields"
 	"github.com/golang/protobuf/proto"
 	"reflect"
 	"strings"
@@ -83,7 +85,8 @@ func isSpecialPackage(importPath string) bool {
 }
 
 func parseObjectInfo(
-	msgType reflect.Type, parsedObjects map[objectKey]*objectInfo, subType *fieldType,
+	msgType reflect.Type, parsedObjects map[objectKey]*objectInfo,
+	subType *fieldType, usedFields inUseFields,
 ) *objectInfo {
 	obj := &objectInfo{
 		typeName:   msgType.Name(),
@@ -100,12 +103,17 @@ func parseObjectInfo(
 		return nil
 	}
 
-	obj.subFields = parseMessageFields(msgType, parsedObjects)
+	obj.subFields = parseMessageFields(msgType, parsedObjects, usedFields)
 	parsedObjects[obj.getKey()] = obj
 	return obj
 }
 
-func parseMessageFields(structType reflect.Type, parsedObjects map[objectKey]*objectInfo) []objectField {
+func parseMessageFields(
+	structType reflect.Type, parsedObjects map[objectKey]*objectInfo,
+	usedFields inUseFields,
+) []objectField {
+	allowFunc := usedFields.toAllowFunc()
+
 	var result []objectField
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
@@ -115,19 +123,24 @@ func parseMessageFields(structType reflect.Type, parsedObjects map[objectKey]*ob
 			continue
 		}
 
+		subUsedFields, allow := allowFunc(jsonName)
+		if !allow {
+			continue
+		}
+
 		var info *objectInfo
 		subType := fieldTypeSimple
 
 		switch field.Type.Kind() {
 		case reflect.Pointer:
 			subType = fieldTypeObject
-			info = parseObjectInfo(field.Type.Elem(), parsedObjects, &subType)
+			info = parseObjectInfo(field.Type.Elem(), parsedObjects, &subType, subUsedFields)
 
 		case reflect.Slice:
 			elemType := field.Type.Elem()
 			if elemType.Kind() == reflect.Pointer {
 				subType = fieldTypeArrayOfObjects
-				info = parseObjectInfo(elemType.Elem(), parsedObjects, &subType)
+				info = parseObjectInfo(elemType.Elem(), parsedObjects, &subType, subUsedFields)
 			} else {
 				subType = fieldTypeArrayOfPrimitives
 			}
@@ -140,22 +153,102 @@ func parseMessageFields(structType reflect.Type, parsedObjects map[objectKey]*ob
 			fieldType: subType,
 		})
 	}
+
+	usedFields.checkFieldsExisted(result)
+
 	return result
 }
 
-func parseMessages(msgList ...proto.Message) []*objectInfo {
+// ProtoMessage ...
+type ProtoMessage struct {
+	protoMsg  proto.Message
+	limitedTo []fields.FieldInfo
+}
+
+// NewProtoMessage ...
+func NewProtoMessage(msg proto.Message) ProtoMessage {
+	return ProtoMessage{
+		protoMsg: msg,
+	}
+}
+
+// NewProtoMessageWithFields ...
+func NewProtoMessageWithFields(msg proto.Message, limitedToFields []string) ProtoMessage {
+	limitedTo, err := fields.ComputeFieldInfos(limitedToFields)
+	if err != nil {
+		panic(err)
+	}
+	return ProtoMessage{
+		protoMsg:  msg,
+		limitedTo: limitedTo,
+	}
+}
+
+type inUseFields struct {
+	limitedTo []fields.FieldInfo
+	allowAll  bool
+	prefix    string
+}
+
+func (u inUseFields) toAllowFunc() func(jsonName string) (inUseFields, bool) {
+	if u.allowAll {
+		return func(jsonName string) (inUseFields, bool) {
+			return inUseFields{
+				allowAll: true,
+			}, true
+		}
+	}
+
+	set := map[string]inUseFields{}
+	for _, f := range u.limitedTo {
+		set[f.FieldName] = inUseFields{
+			prefix:    u.prefix + f.FieldName + ".",
+			limitedTo: f.SubFields,
+		}
+	}
+
+	return func(jsonName string) (inUseFields, bool) {
+		subUsed, ok := set[jsonName]
+		return subUsed, ok
+	}
+}
+
+func (u inUseFields) checkFieldsExisted(objectFields []objectField) {
+	jsonNames := map[string]struct{}{}
+	for _, r := range objectFields {
+		jsonNames[r.jsonName] = struct{}{}
+	}
+	for _, f := range u.limitedTo {
+		_, ok := jsonNames[f.FieldName]
+		if !ok {
+			panic(fmt.Sprintf("not found field '%s'", u.prefix+f.FieldName))
+		}
+	}
+}
+
+func parseMessages(msgList ...ProtoMessage) []*objectInfo {
 	var result []*objectInfo
 
 	parsedObjects := map[objectKey]*objectInfo{}
 
 	for _, msg := range msgList {
-		msgType := reflect.TypeOf(msg)
+		msgType := reflect.TypeOf(msg.protoMsg)
 		if msgType == nil || msgType.Kind() != reflect.Pointer {
 			panic("invalid message type")
 		}
 
+		allowAllFields := true
+		if len(msg.limitedTo) > 0 {
+			allowAllFields = false
+		}
+
+		usedFields := inUseFields{
+			limitedTo: msg.limitedTo,
+			allowAll:  allowAllFields,
+		}
+
 		msgType = msgType.Elem()
-		info := parseObjectInfo(msgType, parsedObjects, nil)
+		info := parseObjectInfo(msgType, parsedObjects, nil, usedFields)
 		result = append(result, info)
 	}
 	return result
