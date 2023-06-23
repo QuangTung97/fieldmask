@@ -4,8 +4,10 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"go/format"
 	"io"
+	"os"
 	"strings"
 	"text/template"
 )
@@ -285,6 +287,25 @@ func generateCode(
 	}
 
 	_, err = writer.Write(sourceData)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// Generate ...
+func Generate(
+	fileName string,
+	protoMessages []proto.Message,
+	packageName string,
+) {
+	file, err := os.Create(fileName)
+	if err != nil {
+		panic(err)
+	}
+
+	generateCode(file, parseMessages(protoMessages...), packageName)
+
+	err = file.Close()
 	if err != nil {
 		panic(err)
 	}

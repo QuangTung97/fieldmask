@@ -7,6 +7,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"go/format"
 	"io"
+	"os"
 	"reflect"
 	"text/template"
 )
@@ -93,6 +94,26 @@ func generateFieldMapCode(
 	}
 
 	_, err = writer.Write(sourceData)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// GenerateFieldMap ...
+func GenerateFieldMap(
+	fileName string,
+	protoMessages []proto.Message,
+	packageName string,
+	options ...GenerateFieldMapOption,
+) {
+	file, err := os.Create(fileName)
+	if err != nil {
+		panic(err)
+	}
+
+	generateFieldMapCode(file, parseMessages(protoMessages...), packageName, options...)
+
+	err = file.Close()
 	if err != nil {
 		panic(err)
 	}
