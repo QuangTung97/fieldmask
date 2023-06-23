@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/QuangTung97/fieldmask/fields"
 	"reflect"
+	"sync"
 )
 
 // Field ...
@@ -31,6 +32,21 @@ type FieldMap[F Field, T MapType[F]] struct {
 	parentList []F
 	fieldNames []string
 	structTags map[string][]string
+
+	tagsIndex     map[string]*tagToFieldMapping[F]
+	tagsIndexOnce sync.Once
+}
+
+type tagToFieldMapping[F Field] struct {
+	field     F // empty for the first
+	subFields map[string]*tagToFieldMapping[F]
+}
+
+func (i *tagToFieldMapping[F]) getSubFields() map[string]*tagToFieldMapping[F] {
+	if i.subFields == nil {
+		i.subFields = map[string]*tagToFieldMapping[F]{}
+	}
+	return i.subFields
 }
 
 type fieldMapOptions struct {
@@ -328,8 +344,57 @@ func (f *FieldMap[F, T]) GetFullStructTag(tag string, field F) string {
 	}
 }
 
+func (f *FieldMap[F, T]) buildTagMappingForField(tag string, field F) *tagToFieldMapping[F] {
+	tagMapping := &tagToFieldMapping[F]{
+		field: field,
+	}
+
+	childrenFields := f.ChildrenOf(field)
+	for _, childField := range childrenFields {
+		tagValue := f.GetStructTag(tag, childField)
+		tagMapping.getSubFields()[tagValue] = f.buildTagMappingForField(tag, childField)
+	}
+
+	return tagMapping
+}
+
+func (f *FieldMap[F, T]) buildTagsIndex() {
+	f.tagsIndex = map[string]*tagToFieldMapping[F]{}
+
+	for tag := range f.structTags {
+		f.tagsIndex[tag] = f.buildTagMappingForField(tag, f.structRoot)
+	}
+}
+
+func (f *FieldMap[F, T]) getTagMapping(tag string) *tagToFieldMapping[F] {
+	f.tagsIndexOnce.Do(f.buildTagsIndex)
+	return f.tagsIndex[tag]
+}
+
+func (f *FieldMap[F, T]) fromMaskedFieldsRecursive(
+	tagMapping *tagToFieldMapping[F],
+	maskedFields []fields.FieldInfo, result []F,
+) ([]F, error) {
+	for _, maskedField := range maskedFields {
+		subTagMapping, ok := tagMapping.subFields[maskedField.FieldName]
+		if !ok {
+			return nil, fields.ErrFieldNotFound(maskedField.FieldName)
+		}
+		if len(maskedField.SubFields) > 0 {
+			result, err := f.fromMaskedFieldsRecursive(subTagMapping, maskedField.SubFields, result)
+			if err != nil {
+				return nil, fields.PrependParentField(err, maskedField.FieldName)
+			}
+			return result, nil
+		}
+		result = append(result, subTagMapping.field)
+	}
+	return result, nil
+}
+
 func (f *FieldMap[F, T]) FromMaskedFields(
 	tag string, maskedFields []fields.FieldInfo,
-) []F {
-	return nil
+) ([]F, error) {
+	result := make([]F, 0, len(maskedFields))
+	return f.fromMaskedFieldsRecursive(f.getTagMapping(tag), maskedFields, result)
 }

@@ -1,7 +1,9 @@
 package fieldmap
 
 import (
+	"github.com/QuangTung97/fieldmask/fields"
 	"github.com/stretchr/testify/assert"
+	"sync"
 	"testing"
 )
 
@@ -273,5 +275,166 @@ func TestFieldMap__Errors(t *testing.T) {
 		assert.PanicsWithValue(t, `invalid type for field "Inner.Root"`, func() {
 			New[field, structWithInvalidRootType]()
 		})
+	})
+}
+
+func TestFieldMap__FromMaskedFields(t *testing.T) {
+	t.Run("simple struct single field", func(t *testing.T) {
+		fm := New[field, simpleData](WithStructTags("json"))
+
+		mapping := fm.GetMapping()
+
+		result, err := fm.FromMaskedFields("json", []fields.FieldInfo{
+			{FieldName: "sku"},
+		})
+		assert.Equal(t, nil, err)
+		assert.Equal(t, []field{
+			mapping.Sku,
+		}, result)
+	})
+
+	t.Run("simple struct multiple fields", func(t *testing.T) {
+		fm := New[field, simpleData](WithStructTags("json"))
+
+		mapping := fm.GetMapping()
+
+		result, err := fm.FromMaskedFields("json", []fields.FieldInfo{
+			{FieldName: "sku"},
+			{FieldName: "name"},
+		})
+
+		assert.Equal(t, nil, err)
+		assert.Equal(t, []field{
+			mapping.Sku,
+			mapping.Name,
+		}, result)
+	})
+
+	t.Run("simple struct not found field", func(t *testing.T) {
+		fm := New[field, simpleData](WithStructTags("json"))
+
+		result, err := fm.FromMaskedFields("json", []fields.FieldInfo{
+			{FieldName: "sku"},
+			{FieldName: "name"},
+			{FieldName: "xxyy"},
+		})
+
+		assert.Equal(t, fields.ErrFieldNotFound("xxyy"), err)
+		assert.Nil(t, result)
+	})
+
+	t.Run("complex struct", func(t *testing.T) {
+		fm := New[field, productData](WithStructTags("json"))
+
+		mapping := fm.GetMapping()
+
+		result, err := fm.FromMaskedFields("json", []fields.FieldInfo{
+			{FieldName: "sku"},
+			{
+				FieldName: "seller",
+				SubFields: []fields.FieldInfo{
+					{
+						FieldName: "id",
+					},
+					{
+						FieldName: "name",
+					},
+					{
+						FieldName: "attr",
+						SubFields: []fields.FieldInfo{
+							{
+								FieldName: "code",
+							},
+						},
+					},
+				},
+			},
+		})
+
+		assert.Equal(t, nil, err)
+		assert.Equal(t, []field{
+			mapping.Sku,
+			mapping.Seller.ID,
+			mapping.Seller.Name,
+			mapping.Seller.Attr.Code,
+		}, result)
+	})
+
+	t.Run("complex struct field not found", func(t *testing.T) {
+		fm := New[field, productData](WithStructTags("json"))
+
+		result, err := fm.FromMaskedFields("json", []fields.FieldInfo{
+			{FieldName: "sku"},
+			{
+				FieldName: "seller",
+				SubFields: []fields.FieldInfo{
+					{
+						FieldName: "id",
+					},
+					{
+						FieldName: "name",
+					},
+					{
+						FieldName: "attr",
+						SubFields: []fields.FieldInfo{
+							{
+								FieldName: "code",
+							},
+							{
+								FieldName: "xxzz",
+							},
+						},
+					},
+				},
+			},
+		})
+
+		assert.Equal(t, fields.ErrFieldNotFound("seller.attr.xxzz"), err)
+		assert.Nil(t, result)
+	})
+
+	t.Run("complex struct run concurrent", func(t *testing.T) {
+		fm := New[field, productData](WithStructTags("json"))
+
+		runFunc := func() {
+			result, err := fm.FromMaskedFields("json", []fields.FieldInfo{
+				{FieldName: "sku"},
+				{
+					FieldName: "seller",
+					SubFields: []fields.FieldInfo{
+						{
+							FieldName: "id",
+						},
+						{
+							FieldName: "name",
+						},
+						{
+							FieldName: "attr",
+							SubFields: []fields.FieldInfo{
+								{
+									FieldName: "code",
+								},
+								{
+									FieldName: "xxzz",
+								},
+							},
+						},
+					},
+				},
+			})
+
+			assert.Equal(t, fields.ErrFieldNotFound("seller.attr.xxzz"), err)
+			assert.Nil(t, result)
+		}
+
+		var wg sync.WaitGroup
+		for i := 0; i < 100; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				runFunc()
+			}()
+		}
+		wg.Wait()
 	})
 }
