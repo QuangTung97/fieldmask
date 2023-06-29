@@ -338,13 +338,45 @@ func TestParser_Both_Simple_And_Complex__With_Limited_Fields(t *testing.T) {
 }
 
 func TestParser_Both_Simple_And_Complex__With_Limited_Fields__Conflicted(t *testing.T) {
-	assert.PanicsWithValue(t, "conflicted limited to fields declaration for type 'ProviderInfo'", func() {
-		parseMessages(
-			NewProtoMessageWithFields(&pb.Product{}, []string{
-				"sku",
-				"provider.id",
-			}),
-			NewProtoMessageWithFields(&pb.ProviderInfo{}, []string{"name"}),
-		)
-	})
+	infos := parseMessages(
+		NewProtoMessageWithFields(&pb.Product{}, []string{
+			"sku",
+			"provider.id",
+		}),
+		NewProtoMessageWithFields(&pb.ProviderInfo{}, []string{"name"}),
+	)
+	assert.Equal(t, 2, len(infos))
+
+	provider := &objectInfo{
+		typeName:   "ProviderInfo",
+		importPath: "github.com/QuangTung97/fieldmask/testdata/pb",
+		subFields: []objectField{
+			{
+				name:     "Id",
+				jsonName: "id",
+			},
+			{
+				name:     "Name",
+				jsonName: "name",
+			},
+		},
+	}
+
+	assert.Equal(t, &objectInfo{
+		typeName:   "Product",
+		importPath: "github.com/QuangTung97/fieldmask/testdata/pb",
+		subFields: []objectField{
+			{
+				name:     "Sku",
+				jsonName: "sku",
+			},
+			{
+				name:      "Provider",
+				jsonName:  "provider",
+				fieldType: fieldTypeObject,
+				info:      provider,
+			},
+		},
+	}, infos[0])
+	assert.Equal(t, provider, infos[1])
 }

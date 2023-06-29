@@ -76,11 +76,11 @@ func {{ .FuncName }}(fieldInfos []fields.FieldInfo) ({{ .FuncType }}, error) {
 }
 
 {{ end -}}
-{{ range .KeepFuncs }}
+{{ range .KeepFuncsForImpl }}
 // =========================================
 // {{ .TypeName }} Keep Functions
 // =========================================
-{{ range .ImplFieldFuncs }}
+{{ range .FieldFuncImpls }}
 func {{ .FuncName }}(newMsg *{{ .QualifiedType }}, msg *{{ .QualifiedType }}) {
 	newMsg.{{ .FieldName }} = msg.{{ .FieldName }}
 }

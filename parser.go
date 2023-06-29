@@ -1,7 +1,6 @@
 package fieldmask
 
 import (
-	"fmt"
 	"github.com/QuangTung97/fieldmask/fields"
 	"github.com/golang/protobuf/proto"
 	"reflect"
@@ -174,78 +173,6 @@ func NewProtoMessageWithFields(msg proto.Message, limitedToFields []string) Prot
 	}
 }
 
-type inUseFields struct {
-	limitedTo []fields.FieldInfo
-	allowAll  bool
-	prefix    string
-}
-
-func (u inUseFields) toAllowFunc() func(jsonName string) (inUseFields, bool) {
-	set := map[string]inUseFields{}
-	for _, f := range u.limitedTo {
-		set[f.FieldName] = inUseFields{
-			prefix:    u.prefix + f.FieldName + ".",
-			limitedTo: f.SubFields,
-		}
-	}
-
-	return func(jsonName string) (inUseFields, bool) {
-		subUsed, ok := set[jsonName]
-		return subUsed, ok
-	}
-}
-
-func (u inUseFields) checkFieldsExisted(objectFields []objectField) {
-	jsonNames := map[string]struct{}{}
-	for _, r := range objectFields {
-		jsonNames[r.jsonName] = struct{}{}
-	}
-	for _, f := range u.limitedTo {
-		_, ok := jsonNames[f.FieldName]
-		if !ok {
-			panic(fmt.Sprintf("not found field '%s'", u.prefix+f.FieldName))
-		}
-	}
-}
-
-func (u inUseFields) traverseInfo(info *objectInfo, traversedObjects map[objectKey]struct{}) {
-	if info == nil {
-		return
-	}
-
-	objKey := info.getKey()
-	_, existed := traversedObjects[objKey]
-	if existed {
-		panic(fmt.Sprintf("conflicted limited to fields declaration for type '%s'", info.typeName))
-	}
-	traversedObjects[objKey] = struct{}{}
-
-	if u.allowAll {
-		return
-	}
-
-	u.checkFieldsExisted(info.subFields)
-
-	allowFunc := u.toAllowFunc()
-
-	newSubFields := make([]objectField, 0)
-	for _, subField := range info.subFields {
-		subUsedFields, allow := allowFunc(subField.jsonName)
-		if !allow {
-			continue
-		}
-		if subField.info != nil && len(subUsedFields.limitedTo) == 0 {
-			subField.info = nil
-			subField.fieldType = fieldTypeSimple
-		} else {
-			subUsedFields.traverseInfo(subField.info, traversedObjects)
-		}
-
-		newSubFields = append(newSubFields, subField)
-	}
-	info.subFields = newSubFields
-}
-
 func parseMessages(msgList ...ProtoMessage) []*objectInfo {
 	var result []*objectInfo
 
@@ -257,27 +184,16 @@ func parseMessages(msgList ...ProtoMessage) []*objectInfo {
 			panic("invalid message type")
 		}
 
+		// TODO Check special type
+
 		msgType = msgType.Elem()
 		info := parseObjectInfo(msgType, parsedObjects, nil)
 		result = append(result, info)
 	}
 
-	traversedObjects := map[objectKey]struct{}{}
+	selector := newFieldSelector()
 
-	for i, info := range result {
-		msg := msgList[i]
-
-		allowAllFields := true
-		if len(msg.limitedTo) > 0 {
-			allowAllFields = false
-		}
-
-		usedFields := inUseFields{
-			limitedTo: msg.limitedTo,
-			allowAll:  allowAllFields,
-		}
-		usedFields.traverseInfo(info, traversedObjects)
-	}
+	selector.traverseAll(msgList, result)
 
 	return result
 }

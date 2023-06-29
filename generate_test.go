@@ -21,3 +21,22 @@ func TestGenerate(t *testing.T) {
 
 	assert.Equal(t, generatedCode, buf.String())
 }
+
+//go:embed testdata/generated/limited/provider.go
+var generatedCodeWithLimitedFields string
+
+func TestGenerate_WithLimitedTo(t *testing.T) {
+	var buf bytes.Buffer
+
+	generateCode(&buf, parseMessages(
+		NewProtoMessage(&pb.ProviderInfo{}),
+		NewProtoMessageWithFields(&pb.Product{}, []string{
+			"sku",
+			"provider",
+			"attributes.options.code",
+			"stocks",
+		}),
+	), "generated")
+
+	assert.Equal(t, generatedCodeWithLimitedFields, buf.String())
+}

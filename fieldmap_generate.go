@@ -1,15 +1,11 @@
 package fieldmask
 
 import (
-	"bytes"
 	_ "embed"
-	"fmt"
 	"github.com/golang/protobuf/proto"
-	"go/format"
 	"io"
 	"os"
 	"reflect"
-	"text/template"
 )
 
 type fieldMapGenerateParams struct {
@@ -71,32 +67,13 @@ func generateFieldMapCode(
 ) {
 	opts := newGenerateFieldMapOptions(options)
 
-	tmpl, err := template.New("fieldmask").Parse(fieldMapTemplateString)
-	if err != nil {
-		panic(err)
-	}
+	infos := traverseAllObjectInfos(inputInfos)
 
-	infos := traverseAllObjectInfos(inputInfos, map[objectKey]struct{}{})
-
-	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, fieldMapGenerateParams{
+	params := fieldMapGenerateParams{
 		PackageName: packageName,
 		Structs:     buildFieldMapStructs(opts, infos),
-	})
-	if err != nil {
-		panic(err)
 	}
-
-	sourceData, err := format.Source(buf.Bytes())
-	if err != nil {
-		fmt.Println(buf.String())
-		panic(err)
-	}
-
-	_, err = writer.Write(sourceData)
-	if err != nil {
-		panic(err)
-	}
+	writeToTemplate(writer, fieldMapTemplateString, params)
 }
 
 // GenerateFieldMap ...

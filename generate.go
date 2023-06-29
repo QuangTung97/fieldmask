@@ -12,7 +12,7 @@ import (
 )
 
 //go:embed template
-var templateString string
+var fieldmaskTemplateString string
 
 type typeAndNewFunc struct {
 	StructName          string
@@ -27,10 +27,10 @@ type keepFunc struct {
 	FuncType string
 
 	FieldFuncs     []fieldKeepFunc
-	ImplFieldFuncs []implFieldFunc
+	FieldFuncImpls []fieldFuncImpl
 }
 
-type implFieldFunc struct {
+type fieldFuncImpl struct {
 	QualifiedType string
 	FuncName      string
 	FieldName     string
@@ -46,16 +46,29 @@ type fieldKeepFunc struct {
 }
 
 type generateParams struct {
-	PackageName     string
-	Imports         []string
-	TypeAndNewFuncs []typeAndNewFunc
-	KeepFuncs       []keepFunc
+	PackageName      string
+	Imports          []string
+	TypeAndNewFuncs  []typeAndNewFunc
+	KeepFuncs        []keepFunc
+	KeepFuncsForImpl []keepFunc
 }
 
 func mapSlice[A any, B any](input []A, fn func(a A) B) []B {
 	result := make([]B, 0, len(input))
 	for _, e := range input {
 		result = append(result, fn(e))
+	}
+	return result
+}
+
+func filterSlice[T any](input []T, fn func(a T) bool) []T {
+	result := make([]T, 0, len(input))
+	for _, e := range input {
+		pred := fn(e)
+		if !pred {
+			continue
+		}
+		result = append(result, e)
 	}
 	return result
 }
@@ -187,64 +200,64 @@ func buildKeepFuncForField(info *objectInfo, subField objectField) fieldKeepFunc
 	}
 }
 
-func buildKeepFunc(info *objectInfo) keepFunc {
-	fieldFuncs := mapSlice(info.subFields, func(subField objectField) fieldKeepFunc {
-		return buildKeepFuncForField(info, subField)
-	})
-
-	implFuncs := make([]implFieldFunc, 0, len(fieldFuncs))
+func buildFieldFuncImplList(info *objectInfo, fieldFuncs []fieldKeepFunc) []fieldFuncImpl {
+	implFuncs := make([]fieldFuncImpl, 0)
 	for _, fn := range fieldFuncs {
 		if fn.isObject {
 			continue
 		}
-		implFuncs = append(implFuncs, implFieldFunc{
+		implFuncs = append(implFuncs, fieldFuncImpl{
 			QualifiedType: getQualifiedTypeName(info),
 			FieldName:     fn.fieldName,
 			FuncName:      fn.funcName,
 		})
 	}
+	return implFuncs
+}
+
+func buildKeepFunc(info *objectInfo) keepFunc {
+	fieldFuncs := mapSlice(info.subFields, func(subField objectField) fieldKeepFunc {
+		return buildKeepFuncForField(info, subField)
+	})
 
 	return keepFunc{
 		TypeName:       info.typeName,
 		FuncName:       getComputeKeepFuncName(info),
 		FuncType:       getFuncTypeSignature(info),
 		FieldFuncs:     fieldFuncs,
-		ImplFieldFuncs: implFuncs,
+		FieldFuncImpls: buildFieldFuncImplList(info, fieldFuncs),
 	}
 }
 
-func traverseAllObjectInfos(objects []*objectInfo, deduplicated map[objectKey]struct{}) []*objectInfo {
-	var result []*objectInfo
-	for _, obj := range objects {
-		_, existed := deduplicated[obj.getKey()]
-		if existed {
-			continue
-		}
-		deduplicated[obj.getKey()] = struct{}{}
-
-		result = append(result, obj)
-
-		var subObjects []*objectInfo
-		for _, f := range obj.subFields {
-			if f.info != nil {
-				subObjects = append(subObjects, f.info)
-			}
-		}
-		result = append(result, traverseAllObjectInfos(subObjects, deduplicated)...)
+func writeToTemplate(writer io.Writer, templateStr string, params any) {
+	tmpl, err := template.New("fieldmask").Parse(templateStr)
+	if err != nil {
+		panic(err)
 	}
-	return result
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, params)
+	if err != nil {
+		panic(err)
+	}
+
+	sourceData, err := format.Source(buf.Bytes())
+	if err != nil {
+		fmt.Println(buf.String())
+		panic(err)
+	}
+
+	_, err = writer.Write(sourceData)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func generateCode(
 	writer io.Writer, inputInfos []*objectInfo,
 	packageName string,
 ) {
-	tmpl, err := template.New("fieldmask").Parse(templateString)
-	if err != nil {
-		panic(err)
-	}
-
-	infos := traverseAllObjectInfos(inputInfos, map[objectKey]struct{}{})
+	infos := traverseAllObjectInfos(inputInfos)
 
 	inputSet := map[objectKey]struct{}{}
 	for _, obj := range inputInfos {
@@ -261,34 +274,29 @@ func generateCode(
 
 	imports := computeImports(infos)
 
-	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, generateParams{
-		PackageName: packageName,
-		Imports:     imports,
-		TypeAndNewFuncs: mapSlice(inputOnlyInfos, func(e *objectInfo) typeAndNewFunc {
-			return typeAndNewFunc{
-				StructName:          e.typeName + "FieldMask",
-				FuncType:            getFuncTypeSignature(e),
-				ComputeKeepFuncName: getComputeKeepFuncName(e),
-				QualifiedType:       getQualifiedTypeName(e),
-			}
-		}),
-		KeepFuncs: mapSlice(infos, buildKeepFunc),
+	typeAndNewFuncs := mapSlice(inputOnlyInfos, func(e *objectInfo) typeAndNewFunc {
+		return typeAndNewFunc{
+			StructName:          e.typeName + "FieldMask",
+			FuncType:            getFuncTypeSignature(e),
+			ComputeKeepFuncName: getComputeKeepFuncName(e),
+			QualifiedType:       getQualifiedTypeName(e),
+		}
 	})
-	if err != nil {
-		panic(err)
+
+	keepFuncs := mapSlice(infos, buildKeepFunc)
+	keepFuncsForImpl := filterSlice(keepFuncs, func(a keepFunc) bool {
+		return len(a.FieldFuncImpls) > 0
+	})
+
+	params := generateParams{
+		PackageName:      packageName,
+		Imports:          imports,
+		TypeAndNewFuncs:  typeAndNewFuncs,
+		KeepFuncs:        keepFuncs,
+		KeepFuncsForImpl: keepFuncsForImpl,
 	}
 
-	sourceData, err := format.Source(buf.Bytes())
-	if err != nil {
-		fmt.Println(buf.String())
-		panic(err)
-	}
-
-	_, err = writer.Write(sourceData)
-	if err != nil {
-		panic(err)
-	}
+	writeToTemplate(writer, fieldmaskTemplateString, params)
 }
 
 // Generate ...
