@@ -190,4 +190,43 @@ func TestComputeFieldInfos(t *testing.T) {
 		assert.Equal(t, nil, err)
 		assert.Equal(t, 3, len(infos))
 	})
+
+	t.Run("too much component length", func(t *testing.T) {
+		infos, err := ComputeFieldInfos([]string{
+			"sku",
+			"name",
+			"helloabcd",
+		}, WithMaxFieldComponentLength(8))
+		assert.Equal(t, errors.New("fieldmask: exceeded length of field components"), err)
+		assert.Nil(t, infos)
+	})
+
+	t.Run("near much component length", func(t *testing.T) {
+		infos, err := ComputeFieldInfos([]string{
+			"sku",
+			"name",
+			"helloabc",
+		}, WithMaxFieldComponentLength(8))
+		assert.Equal(t, nil, err)
+		assert.Equal(t, 3, len(infos))
+	})
+
+	t.Run("with brackets", func(t *testing.T) {
+		infos, err := ComputeFieldInfos([]string{
+			"sku",
+			"provider.{id|logo|imageUrl}",
+		})
+		assert.Equal(t, nil, err)
+		assert.Equal(t, []FieldInfo{
+			{FieldName: "sku"},
+			{
+				FieldName: "provider",
+				SubFields: []FieldInfo{
+					{FieldName: "id"},
+					{FieldName: "logo"},
+					{FieldName: "imageUrl"},
+				},
+			},
+		}, infos)
+	})
 }

@@ -1,6 +1,7 @@
 package fieldmask
 
 import (
+	"fmt"
 	"github.com/QuangTung97/fieldmask/fields"
 	"github.com/golang/protobuf/proto"
 	"reflect"
@@ -183,10 +184,12 @@ func parseMessages(msgList ...ProtoMessage) []*objectInfo {
 		if msgType == nil || msgType.Kind() != reflect.Pointer {
 			panic("invalid message type")
 		}
-
-		// TODO Check special type
-
 		msgType = msgType.Elem()
+
+		if isSpecialPackage(msgType.PkgPath()) {
+			panic(fmt.Sprintf("not allow type '%s'", msgType.Name()))
+		}
+
 		info := parseObjectInfo(msgType, parsedObjects, nil)
 		result = append(result, info)
 	}

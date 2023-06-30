@@ -1,14 +1,16 @@
 package fields
 
 type computeOptions struct {
-	maxFields int
-	maxDepth  int
+	maxComponentLen int
+	maxFields       int
+	maxDepth        int
 }
 
 func newComputeOptions(options []Option) *computeOptions {
 	opts := &computeOptions{
-		maxFields: 1000,
-		maxDepth:  5,
+		maxFields:       1000,
+		maxDepth:        5,
+		maxComponentLen: 128,
 	}
 	for _, fn := range options {
 		fn(opts)
@@ -30,5 +32,12 @@ func WithMaxFields(max int) Option {
 func WithMaxFieldDepth(depth int) Option {
 	return func(opts *computeOptions) {
 		opts.maxDepth = depth
+	}
+}
+
+// WithMaxFieldComponentLength ...
+func WithMaxFieldComponentLength(maxLength int) Option {
+	return func(opts *computeOptions) {
+		opts.maxComponentLen = maxLength
 	}
 }

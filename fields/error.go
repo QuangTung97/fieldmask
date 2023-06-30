@@ -78,3 +78,6 @@ var ErrExceedMaxFields = errors.New("fieldmask: exceeded max number of fields")
 
 // ErrExceedMaxDepth ...
 var ErrExceedMaxDepth = errors.New("fieldmask: exceeded max number of field depth")
+
+// ErrExceedMaxFieldComponentLength ...
+var ErrExceedMaxFieldComponentLength = errors.New("fieldmask: exceeded length of field components")

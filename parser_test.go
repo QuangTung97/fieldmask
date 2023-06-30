@@ -2,6 +2,7 @@ package fieldmask
 
 import (
 	"github.com/QuangTung97/fieldmask/testdata/pb"
+	"github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -379,4 +380,10 @@ func TestParser_Both_Simple_And_Complex__With_Limited_Fields__Conflicted(t *test
 		},
 	}, infos[0])
 	assert.Equal(t, provider, infos[1])
+}
+
+func TestParser_Special_Type(t *testing.T) {
+	assert.PanicsWithValue(t, "not allow type 'DoubleValue'", func() {
+		parseMessages(NewProtoMessage(&types.DoubleValue{}))
+	})
 }
