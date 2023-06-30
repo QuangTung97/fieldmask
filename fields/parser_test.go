@@ -224,6 +224,18 @@ func TestParser_Error(t *testing.T) {
 		err := p.parse()
 		assert.Equal(t, errors.New("fields: not allow extra string after '}'"), err)
 	})
+
+	t.Run("extra invalid character", func(t *testing.T) {
+		p := newParserTest("info.sku?")
+		err := p.parse()
+		assert.Equal(t, errors.New("fields: character '?' is not allowed"), err)
+	})
+
+	t.Run("with bracket extra invalid character", func(t *testing.T) {
+		p := newParserTest("info.{sku|name}?")
+		err := p.parse()
+		assert.Equal(t, errors.New("fields: character '?' is not allowed"), err)
+	})
 }
 
 func TestParser_Error_From_Scanner(t *testing.T) {

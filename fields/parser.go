@@ -34,7 +34,7 @@ func (p *parser) parse() error {
 	if p.sc.getTokenType() != tokenTypeUnspecified {
 		return p.sc.withErrorf("not allow extra string after '}'")
 	}
-	return nil
+	return p.sc.getErr()
 }
 
 func (*parser) addParentPrefix(err error, prefix string) error {
@@ -113,9 +113,9 @@ func (p *parser) parseFieldExprBracket(coll *fieldInfoCollector) error {
 	if p.sc.getTokenType() != tokenTypeClosingBracket {
 		return p.sc.withErrorf("missing '}'")
 	}
-	p.sc.next()
 
-	return nil
+	p.sc.next()
+	return p.sc.getErr()
 }
 
 func (p *parser) parseFieldSiblingList(coll *fieldInfoCollector) error {
