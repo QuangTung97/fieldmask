@@ -57,6 +57,7 @@ type sourceSellerInfo struct {
 	Root sourceField
 
 	Logo sourceField
+	Type sourceField
 }
 
 type sourceSeller struct {
@@ -64,6 +65,7 @@ type sourceSeller struct {
 
 	ID   sourceField
 	Name sourceField
+	Code sourceField
 	Info sourceSellerInfo
 }
 
@@ -300,6 +302,24 @@ func TestMapping_Complex(t *testing.T) {
 		assert.Equal(t, []destField{dest.SearchText}, m.FindMappedFields([]sourceField{source.Sku}))
 	})
 
+	t.Run("mapping for child but get mapping from parent", func(t *testing.T) {
+		sourceFm := New[sourceField, sourceDataComplex]()
+		destFm := New[destField, destDataComplex]()
+
+		source := sourceFm.GetMapping()
+		dest := destFm.GetMapping()
+
+		m := NewMapper(
+			sourceFm, destFm,
+			WithSimpleMapping(sourceFm, destFm,
+				NewMapping(source.Sku, dest.Info.Sku),
+				NewMapping(source.Seller.Name, dest.SearchText),
+			),
+		)
+
+		assert.Equal(t, []destField{dest.SearchText}, m.FindMappedFields([]sourceField{source.Seller.Root}))
+	})
+
 	t.Run("panics when mapping without dest fields", func(t *testing.T) {
 		sourceFm := New[sourceField, sourceDataComplex]()
 		destFm := New[destField, destDataComplex]()
@@ -333,7 +353,6 @@ func TestMapping_Complex(t *testing.T) {
 			subSourceFm, subDestFm,
 			WithSimpleMapping(subSourceFm, subDestFm,
 				NewMapping(subSource.ID, subDest.Body),
-				NewMapping(subSource.Name, subDest.Body),
 				NewMapping(subSource.Info.Logo, subDest.Body),
 			),
 		)
@@ -353,12 +372,13 @@ func TestMapping_Complex(t *testing.T) {
 
 		assert.Equal(t, []destField{dest.Info.Sku}, m.FindMappedFields([]sourceField{source.Sku}))
 		assert.Equal(t, []destField{dest.Detail.Body}, m.FindMappedFields([]sourceField{source.Seller.ID}))
-		assert.Equal(t, []destField{dest.Detail.Body}, m.FindMappedFields([]sourceField{source.Seller.Name}))
+		assert.Equal(t, []destField(nil), m.FindMappedFields([]sourceField{source.Seller.Name}))
 
-		assert.Equal(t, 0, len(m.FindMappedFields([]sourceField{source.Seller.Root})))
+		assert.Equal(t, []destField{dest.Detail.Body}, m.FindMappedFields([]sourceField{source.Seller.Root}))
 
 		assert.Equal(t, []destField{dest.Detail.Body}, m.FindMappedFields([]sourceField{source.Seller.Info.Logo}))
-		assert.Equal(t, 0, len(m.FindMappedFields([]sourceField{source.Seller.Info.Root})))
+		assert.Equal(t, []destField(nil), m.FindMappedFields([]sourceField{source.Seller.Info.Type}))
+		assert.Equal(t, []destField{dest.Detail.Body}, m.FindMappedFields([]sourceField{source.Seller.Info.Root}))
 	})
 
 	t.Run("with inherit mapping to destination itself", func(t *testing.T) {
@@ -397,10 +417,16 @@ func TestMapping_Complex(t *testing.T) {
 		assert.Equal(t, []destField{dest.Info.Sku}, m.FindMappedFields([]sourceField{source.Sku}))
 		assert.Equal(t, []destField{dest.SearchText}, m.FindMappedFields([]sourceField{source.Seller.ID}))
 		assert.Equal(t, []destField{dest.Detail.Body}, m.FindMappedFields([]sourceField{source.Seller.Name}))
+		assert.Equal(t, []destField(nil), m.FindMappedFields([]sourceField{source.Seller.Code}))
 
-		assert.Equal(t, 0, len(m.FindMappedFields([]sourceField{source.Seller.Root})))
+		assert.Equal(t, []destField{
+			dest.SearchText,
+			dest.Detail.Body,
+			dest.Info.Name,
+		}, m.FindMappedFields([]sourceField{source.Seller.Root}))
 
 		assert.Equal(t, []destField{dest.Info.Name}, m.FindMappedFields([]sourceField{source.Seller.Info.Logo}))
-		assert.Equal(t, 0, len(m.FindMappedFields([]sourceField{source.Seller.Info.Root})))
+		assert.Equal(t, []destField{dest.Info.Name}, m.FindMappedFields([]sourceField{source.Seller.Info.Root}))
+		assert.Equal(t, []destField(nil), m.FindMappedFields([]sourceField{source.Seller.Info.Type}))
 	})
 }

@@ -4,9 +4,10 @@ import "fmt"
 
 // Mapper ...
 type Mapper[F1 Field, T1 MapType[F1], F2 Field, T2 MapType[F2]] struct {
-	parentOf func(source F1) F1
-	fieldMap map[F1][][]F2
-	mappings []MappingData[F1, F2]
+	childrenOf func(source F1) []F1
+	parentOf   func(source F1) F1
+	fieldMap   map[F1][][]F2
+	mappings   []MappingData[F1, F2]
 }
 
 // MappingData ...
@@ -108,16 +109,18 @@ func NewMapper[F1 Field, T1 MapType[F1], F2 Field, T2 MapType[F2]](
 	}
 
 	return &Mapper[F1, T1, F2, T2]{
-		parentOf: source.ParentOf,
-		fieldMap: fieldMap,
-		mappings: mappingDataList,
+		childrenOf: source.ChildrenOf,
+		parentOf:   source.ParentOf,
+		fieldMap:   fieldMap,
+		mappings:   mappingDataList,
 	}
 }
 func (m *Mapper[F1, T1, F2, T2]) findMappedFieldsForSourceField(
-	sourceField F1, resultSet map[F2]emptyStruct, result []F2,
+	inputSourceField F1, resultSet map[F2]emptyStruct, result []F2,
 ) []F2 {
 	var empty F1
 
+	sourceField := inputSourceField
 	for {
 		for _, destFields := range m.fieldMap[sourceField] {
 			for _, f := range destFields {
@@ -135,9 +138,14 @@ func (m *Mapper[F1, T1, F2, T2]) findMappedFieldsForSourceField(
 
 		sourceField = m.parentOf(sourceField)
 		if sourceField == empty {
-			return result
+			break
 		}
 	}
+
+	for _, child := range m.childrenOf(inputSourceField) {
+		result = m.findMappedFieldsForSourceField(child, resultSet, result)
+	}
+	return result
 }
 
 // FindMappedFields ...
