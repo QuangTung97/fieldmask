@@ -27,7 +27,14 @@ func (p *parser) parse() error {
 	if !p.sc.next() {
 		return p.sc.withErrorf("missing field identifier")
 	}
-	return p.parseFieldExpr(p.collector)
+	err := p.parseFieldExpr(p.collector)
+	if err != nil {
+		return err
+	}
+	if p.sc.getTokenType() != tokenTypeUnspecified {
+		return p.sc.withErrorf("not allow extra string after '}'")
+	}
+	return nil
 }
 
 func (*parser) addParentPrefix(err error, prefix string) error {

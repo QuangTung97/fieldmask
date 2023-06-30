@@ -218,6 +218,12 @@ func TestParser_Error(t *testing.T) {
 		err := p.parse()
 		assert.Equal(t, errors.New("fields: expecting an identifier or a '{' after '.'"), err)
 	})
+
+	t.Run("extra content", func(t *testing.T) {
+		p := newParserTest("info.{sku|name}}")
+		err := p.parse()
+		assert.Equal(t, errors.New("fields: not allow extra string after '}'"), err)
+	})
 }
 
 func TestParser_Error_From_Scanner(t *testing.T) {
