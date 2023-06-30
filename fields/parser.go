@@ -32,7 +32,7 @@ func (p *parser) parse() error {
 		return err
 	}
 	if p.sc.getTokenType() != tokenTypeUnspecified {
-		return p.sc.withErrorf("not allow extra string after '}'")
+		return p.sc.withErrorf("not allow extra string at the end")
 	}
 	return p.sc.getErr()
 }

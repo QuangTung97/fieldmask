@@ -222,7 +222,7 @@ func TestParser_Error(t *testing.T) {
 	t.Run("extra content", func(t *testing.T) {
 		p := newParserTest("info.{sku|name}}")
 		err := p.parse()
-		assert.Equal(t, errors.New("fields: not allow extra string after '}'"), err)
+		assert.Equal(t, errors.New("fields: not allow extra string at the end"), err)
 	})
 
 	t.Run("extra invalid character", func(t *testing.T) {
