@@ -1,4 +1,4 @@
-.PHONY: generate test lint install-tools coverage
+.PHONY: generate test test-race lint install-tools coverage
 
 generate:
 	./generate.sh

@@ -2,5 +2,5 @@
 
 ### Better Field Mask Library for gRPC & gRPC Gateway
 
-[![pipeline status](https://github.com/QuangTung97/fieldmask/badges/master/pipeline.svg)](https://github.com/QuangTung97/fieldmask/-/commits/master)
-[![coverage report](https://github.com/QuangTung97/fieldmask/badges/master/coverage.svg)](https://github.com/QuangTung97/fieldmask/-/commits/master)
+[![fieldmask](https://github.com/QuangTung97/fieldmask/actions/workflows/go.yml/badge.svg)](https://github.com/QuangTung97/fieldmask/actions/workflows/go.yml)
+[![Coverage Status](https://coveralls.io/repos/github/QuangTung97/fieldmask/badge.svg?branch=master)](https://coveralls.io/github/QuangTung97/fieldmask?branch=master)
