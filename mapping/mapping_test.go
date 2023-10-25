@@ -320,6 +320,51 @@ func TestMapping_Complex(t *testing.T) {
 		assert.Equal(t, []destField{dest.SearchText}, m.FindMappedFields([]sourceField{source.Seller.Root}))
 	})
 
+	t.Run("mapping for descendant but get mapping from ancestor", func(t *testing.T) {
+		sourceFm := New[sourceField, sourceDataComplex]()
+		destFm := New[destField, destDataComplex]()
+
+		source := sourceFm.GetMapping()
+		dest := destFm.GetMapping()
+
+		m := NewMapper(
+			sourceFm, destFm,
+			WithSimpleMapping(sourceFm, destFm,
+				NewMapping(source.Sku, dest.Info.Sku),
+				NewMapping(source.Seller.Info.Logo, dest.SearchText),
+				NewMapping(source.Seller.Info.Type, dest.Info.Name),
+			),
+		)
+
+		assert.Equal(t,
+			[]destField{dest.SearchText, dest.Info.Name},
+			m.FindMappedFields([]sourceField{source.Seller.Root}),
+		)
+	})
+
+	t.Run("mapping for descendant but get mapping from ancestor, stopped at children", func(t *testing.T) {
+		sourceFm := New[sourceField, sourceDataComplex]()
+		destFm := New[destField, destDataComplex]()
+
+		source := sourceFm.GetMapping()
+		dest := destFm.GetMapping()
+
+		m := NewMapper(
+			sourceFm, destFm,
+			WithSimpleMapping(sourceFm, destFm,
+				NewMapping(source.Sku, dest.Info.Sku),
+				NewMapping(source.Seller.Info.Logo, dest.SearchText),
+				NewMapping(source.Seller.Info.Type, dest.Info.Name),
+				NewMapping(source.Seller.Info.Root, dest.Detail.Body),
+			),
+		)
+
+		assert.Equal(t,
+			[]destField{dest.Detail.Body},
+			m.FindMappedFields([]sourceField{source.Seller.Root}),
+		)
+	})
+
 	t.Run("panics when mapping without dest fields", func(t *testing.T) {
 		sourceFm := New[sourceField, sourceDataComplex]()
 		destFm := New[destField, destDataComplex]()

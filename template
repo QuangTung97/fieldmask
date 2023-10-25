@@ -15,6 +15,7 @@ type {{ .StructName }} struct {
 }
 
 func New{{ .StructName }}(maskedFields []string, options ...fields.Option) (*{{ .StructName}}, error) {
+	{{ .ModifyOptionsStmt -}}
 	fieldInfos, err := fields.ComputeFieldInfos(maskedFields, options...)
 	if err != nil {
 		return nil, err

@@ -16,10 +16,9 @@ func TestGenerateFieldMap(t *testing.T) {
 
 	generateFieldMapCode(
 		&buf, parseMessages(
-			NewProtoMessage(&pb.ProviderInfo{}),
+			NewProtoMessage(&pb.ProviderInfo{}, WithFieldMapRenameType("ProviderData")),
 			NewProtoMessage(&pb.Product{}),
 		), "fieldmap",
-		WithFieldMapRenameType(&pb.ProviderInfo{}, "ProviderData"),
 	)
 
 	assert.Equal(t, fieldMapGeneratedCode, buf.String())

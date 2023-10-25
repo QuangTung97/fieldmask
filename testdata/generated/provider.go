@@ -130,6 +130,9 @@ func pb_Product_ComputeKeepFunc(fieldInfos []fields.FieldInfo) (func(newMsg *pb.
 				return nil, fields.PrependParentField(err, "provider")
 			}
 			subFuncs = append(subFuncs, func(newMsg *pb.Product, msg *pb.Product) {
+				if msg.Provider == nil {
+					return
+				}
 				newSubMsg := &pb.ProviderInfo{}
 				keepFunc(newSubMsg, msg.Provider)
 				newMsg.Provider = newSubMsg

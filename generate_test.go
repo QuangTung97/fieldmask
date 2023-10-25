@@ -3,9 +3,11 @@ package fieldmask
 import (
 	"bytes"
 	_ "embed"
-	"github.com/QuangTung97/fieldmask/testdata/pb"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/QuangTung97/fieldmask/testdata/pb"
 )
 
 //go:embed testdata/generated/provider.go
@@ -25,7 +27,7 @@ func TestGenerate(t *testing.T) {
 //go:embed testdata/generated/limited/provider.go
 var generatedCodeWithLimitedFields string
 
-func TestGenerate_WithLimitedTo(t *testing.T) {
+func TestGenerate_WithLimitedTo_And_WithFieldMaskName(t *testing.T) {
 	var buf bytes.Buffer
 
 	generateCode(&buf, parseMessages(

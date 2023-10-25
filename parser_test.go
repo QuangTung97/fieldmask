@@ -361,6 +361,9 @@ func TestParser_Both_Simple_And_Complex__With_Limited_Fields__Conflicted(t *test
 				jsonName: "name",
 			},
 		},
+		opts: &protoMsgOptions{
+			limitedTo: []string{"name"},
+		},
 	}
 
 	assert.Equal(t, &objectInfo{
@@ -377,6 +380,9 @@ func TestParser_Both_Simple_And_Complex__With_Limited_Fields__Conflicted(t *test
 				fieldType: fieldTypeObject,
 				info:      provider,
 			},
+		},
+		opts: &protoMsgOptions{
+			limitedTo: []string{"sku", "provider.id"},
 		},
 	}, infos[0])
 	assert.Equal(t, provider, infos[1])

@@ -45,6 +45,16 @@ type ProductFieldMask struct {
 }
 
 func NewProductFieldMask(maskedFields []string, options ...fields.Option) (*ProductFieldMask, error) {
+	opts := []fields.Option{
+		fields.WithLimitedToFields([]string{
+			"sku",
+			"provider",
+			"attributes.options.code",
+			"stocks",
+		}),
+	}
+	options = append(opts, options...)
+
 	fieldInfos, err := fields.ComputeFieldInfos(maskedFields, options...)
 	if err != nil {
 		return nil, err

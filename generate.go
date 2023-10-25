@@ -17,6 +17,7 @@ var fieldmaskTemplateString string
 type typeAndNewFunc struct {
 	StructName          string
 	FuncType            string
+	ModifyOptionsStmt   string
 	ComputeKeepFuncName string
 	QualifiedType       string
 }
@@ -131,6 +132,9 @@ func appendStmtForObject(obj *objectInfo, field objectField) string {
 	result := fmt.Sprintf(`
 %s
 subFuncs = append(subFuncs, func (newMsg *%s, msg *%s) {
+	if msg.%s == nil {
+		return
+	}
 	newSubMsg := &%s{}
 	keepFunc(newSubMsg, msg.%s)
 	newMsg.%s = newSubMsg
@@ -138,6 +142,7 @@ subFuncs = append(subFuncs, func (newMsg *%s, msg *%s) {
 `,
 		getKeepFuncStmt(funcName, field.jsonName),
 		objectType, objectType,
+		field.name,
 		subObjectType,
 		field.name, field.name,
 	)
@@ -275,9 +280,26 @@ func generateCode(
 	imports := computeImports(infos)
 
 	typeAndNewFuncs := mapSlice(inputOnlyInfos, func(e *objectInfo) typeAndNewFunc {
+		modifyOptions := ""
+		if e.opts.enableLimitedTo() {
+			fieldList := strings.Join(mapSlice(e.opts.limitedTo, func(s string) string {
+				return fmt.Sprintf("%q,", s)
+			}), "\n")
+
+			modifyOptions = fmt.Sprintf(`opts := []fields.Option{
+	fields.WithLimitedToFields([]string{
+		%s
+	}),
+}
+options = append(opts, options...)
+
+`, fieldList)
+		}
+
 		return typeAndNewFunc{
 			StructName:          e.typeName + "FieldMask",
 			FuncType:            getFuncTypeSignature(e),
+			ModifyOptionsStmt:   modifyOptions,
 			ComputeKeepFuncName: getComputeKeepFuncName(e),
 			QualifiedType:       getQualifiedTypeName(e),
 		}

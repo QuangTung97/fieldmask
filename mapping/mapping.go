@@ -115,6 +115,41 @@ func NewMapper[F1 Field, T1 MapType[F1], F2 Field, T2 MapType[F2]](
 		mappings:   mappingDataList,
 	}
 }
+
+func (m *Mapper[F1, T1, F2, T2]) findMappedFieldsForThisSourceFieldOnly(
+	sourceField F1,
+	resultSet map[F2]emptyStruct, result []F2,
+) ([]F2, bool) {
+	for _, destFields := range m.fieldMap[sourceField] {
+		for _, f := range destFields {
+			_, existed := resultSet[f]
+			if existed {
+				continue
+			}
+			resultSet[f] = emptyStruct{}
+			result = append(result, f)
+		}
+		if len(destFields) > 0 {
+			return result, true
+		}
+	}
+	return result, false
+}
+
+func (m *Mapper[F1, T1, F2, T2]) findMappedFieldsInDescendent(
+	inputSourceField F1, resultSet map[F2]emptyStruct, result []F2,
+) []F2 {
+	for _, child := range m.childrenOf(inputSourceField) {
+		var ok bool
+		result, ok = m.findMappedFieldsForThisSourceFieldOnly(child, resultSet, result)
+		if ok {
+			continue
+		}
+		result = m.findMappedFieldsInDescendent(child, resultSet, result)
+	}
+	return result
+}
+
 func (m *Mapper[F1, T1, F2, T2]) findMappedFieldsForSourceField(
 	inputSourceField F1, resultSet map[F2]emptyStruct, result []F2,
 ) []F2 {
@@ -122,18 +157,10 @@ func (m *Mapper[F1, T1, F2, T2]) findMappedFieldsForSourceField(
 
 	sourceField := inputSourceField
 	for {
-		for _, destFields := range m.fieldMap[sourceField] {
-			for _, f := range destFields {
-				_, existed := resultSet[f]
-				if existed {
-					continue
-				}
-				resultSet[f] = emptyStruct{}
-				result = append(result, f)
-			}
-			if len(destFields) > 0 {
-				return result
-			}
+		var ok bool
+		result, ok = m.findMappedFieldsForThisSourceFieldOnly(sourceField, resultSet, result)
+		if ok {
+			return result
 		}
 
 		sourceField = m.parentOf(sourceField)
@@ -142,10 +169,7 @@ func (m *Mapper[F1, T1, F2, T2]) findMappedFieldsForSourceField(
 		}
 	}
 
-	for _, child := range m.childrenOf(inputSourceField) {
-		result = m.findMappedFieldsForSourceField(child, resultSet, result)
-	}
-	return result
+	return m.findMappedFieldsInDescendent(inputSourceField, resultSet, result)
 }
 
 // FindMappedFields ...
