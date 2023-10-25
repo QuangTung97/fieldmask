@@ -2,10 +2,8 @@ package fieldmask
 
 import (
 	_ "embed"
-	"github.com/golang/protobuf/proto"
 	"io"
 	"os"
-	"reflect"
 )
 
 type fieldMapGenerateParams struct {
@@ -24,18 +22,15 @@ type fieldMapStructField struct {
 	JSONTag   string
 }
 
-func computeFieldMapStructName(opts generateFieldMapOptions, e *objectInfo) string {
-	name := e.typeName
-	if newName, ok := opts.renamed[e.getKey()]; ok {
-		name = newName
-	}
+func computeFieldMapStructName(e *objectInfo) string {
+	name := e.opts.withFieldMapTypeName(e.typeName)
 	return name + "FieldMap"
 }
 
-func buildFieldMapStructField(opts generateFieldMapOptions, f objectField) fieldMapStructField {
+func buildFieldMapStructField(f objectField) fieldMapStructField {
 	typeValue := "Field"
 	if f.info != nil {
-		typeValue = computeFieldMapStructName(opts, f.info)
+		typeValue = computeFieldMapStructName(f.info)
 	}
 	return fieldMapStructField{
 		Name:      f.name,
@@ -44,14 +39,14 @@ func buildFieldMapStructField(opts generateFieldMapOptions, f objectField) field
 	}
 }
 
-func buildFieldMapStructs(opts generateFieldMapOptions, infos []*objectInfo) []fieldMapStruct {
+func buildFieldMapStructs(infos []*objectInfo) []fieldMapStruct {
 	return mapSlice(infos, func(e *objectInfo) fieldMapStruct {
-		structName := computeFieldMapStructName(opts, e)
+		structName := computeFieldMapStructName(e)
 
 		return fieldMapStruct{
 			StructName: structName,
 			Fields: mapSlice(e.subFields, func(f objectField) fieldMapStructField {
-				return buildFieldMapStructField(opts, f)
+				return buildFieldMapStructField(f)
 			}),
 		}
 	})
@@ -63,15 +58,12 @@ var fieldMapTemplateString string
 func generateFieldMapCode(
 	writer io.Writer, inputInfos []*objectInfo,
 	packageName string,
-	options ...GenerateFieldMapOption,
 ) {
-	opts := newGenerateFieldMapOptions(options)
-
 	infos := traverseAllObjectInfos(inputInfos)
 
 	params := fieldMapGenerateParams{
 		PackageName: packageName,
-		Structs:     buildFieldMapStructs(opts, infos),
+		Structs:     buildFieldMapStructs(infos),
 	}
 	writeToTemplate(writer, fieldMapTemplateString, params)
 }
@@ -81,46 +73,16 @@ func GenerateFieldMap(
 	fileName string,
 	protoMessages []ProtoMessage,
 	packageName string,
-	options ...GenerateFieldMapOption,
 ) {
 	file, err := os.Create(fileName)
 	if err != nil {
 		panic(err)
 	}
 
-	generateFieldMapCode(file, parseMessages(protoMessages...), packageName, options...)
+	generateFieldMapCode(file, parseMessages(protoMessages...), packageName)
 
 	err = file.Close()
 	if err != nil {
 		panic(err)
-	}
-}
-
-type generateFieldMapOptions struct {
-	renamed map[objectKey]string
-}
-
-func newGenerateFieldMapOptions(options []GenerateFieldMapOption) generateFieldMapOptions {
-	opts := generateFieldMapOptions{
-		renamed: map[objectKey]string{},
-	}
-
-	for _, fn := range options {
-		fn(&opts)
-	}
-	return opts
-}
-
-// GenerateFieldMapOption ...
-type GenerateFieldMapOption func(opts *generateFieldMapOptions)
-
-// WithFieldMapRenameType ...
-func WithFieldMapRenameType(msg proto.Message, newName string) GenerateFieldMapOption {
-	return func(opts *generateFieldMapOptions) {
-		msgType := reflect.TypeOf(msg).Elem()
-		opts.renamed[objectKey{
-			typeName:   msgType.Name(),
-			importPath: msgType.PkgPath(),
-		}] = newName
 	}
 }

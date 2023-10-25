@@ -229,4 +229,93 @@ func TestComputeFieldInfos(t *testing.T) {
 			},
 		}, infos)
 	})
+
+	t.Run("with brackets and another full fields", func(t *testing.T) {
+		infos, err := ComputeFieldInfos([]string{
+			"provider.{id|logo|imageUrl}",
+			"seller",
+		})
+		assert.Equal(t, nil, err)
+		assert.Equal(t, []FieldInfo{
+			{
+				FieldName: "provider",
+				SubFields: []FieldInfo{
+					{FieldName: "id"},
+					{FieldName: "logo"},
+					{FieldName: "imageUrl"},
+				},
+			},
+			{FieldName: "seller"},
+		}, infos)
+	})
+}
+
+func TestComputeFieldInfos_WithLimitedToFields(t *testing.T) {
+	t.Run("error when not in limited fields", func(t *testing.T) {
+		infos, err := ComputeFieldInfos(
+			[]string{"sku"},
+			WithLimitedToFields([]string{"name"}),
+		)
+		assert.Equal(t, ErrFieldNotFound("sku"), err)
+		assert.Equal(t, "fieldmask: field not found or not allowed 'sku'", err.Error())
+		assert.Equal(t, 0, len(infos))
+	})
+
+	t.Run("error multi levels", func(t *testing.T) {
+		infos, err := ComputeFieldInfos(
+			[]string{"sku", "seller.{id|code|name}"},
+			WithLimitedToFields([]string{"sku", "seller.{id|code}"}),
+		)
+		assert.Equal(t, ErrFieldNotFound("seller.name"), err)
+		assert.Equal(t, 0, len(infos))
+	})
+
+	t.Run("success multi levels", func(t *testing.T) {
+		infos, err := ComputeFieldInfos(
+			[]string{"sku", "seller.{id|code|name}"},
+			WithLimitedToFields([]string{"sku", "seller.{id|code|name|attr}"}),
+		)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, []FieldInfo{
+			{FieldName: "sku"},
+			{
+				FieldName: "seller",
+				SubFields: []FieldInfo{
+					{FieldName: "id"},
+					{FieldName: "code"},
+					{FieldName: "name"},
+				},
+			},
+		}, infos)
+	})
+
+	t.Run("error multi levels", func(t *testing.T) {
+		infos, err := ComputeFieldInfos(
+			[]string{"sku", "seller.{id|code|name}"},
+			WithLimitedToFields([]string{"sku", "seller"}),
+		)
+		assert.Equal(t, ErrFieldNotFound("seller.id"), err)
+		assert.Equal(t, []FieldInfo(nil), infos)
+	})
+
+	t.Run("success multi levels, input field is more general", func(t *testing.T) {
+		infos, err := ComputeFieldInfos(
+			[]string{"sku", "seller"},
+			WithLimitedToFields([]string{"sku", "seller.{id|code|name}"}),
+		)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, []FieldInfo{
+			{FieldName: "sku"},
+			{FieldName: "seller"},
+		}, infos)
+	})
+
+	t.Run("invalid allowed fields", func(t *testing.T) {
+		infos, err := ComputeFieldInfos(
+			[]string{"sku", "seller.{id|code|name}"},
+			WithLimitedToFields([]string{"sku", "seller.{id|code|name|code}"}),
+		)
+		assert.Equal(t, ErrDuplicatedField("seller.code"), err)
+		assert.Equal(t, []FieldInfo(nil), infos)
+	})
 }

@@ -27,7 +27,7 @@ func (p *parser) parse() error {
 	if !p.sc.next() {
 		return p.sc.withErrorf("missing field identifier")
 	}
-	err := p.parseFieldExpr(p.collector)
+	err := p.parseFieldExpr(p.collector, parseFieldExprStateOutsideBracket)
 	if err != nil {
 		return err
 	}
@@ -47,9 +47,46 @@ func (*parser) addParentPrefix(err error, prefix string) error {
 	return PrependParentField(err, prefix)
 }
 
-func (p *parser) parseFieldExpr(coll *fieldInfoCollector) error {
+type parseFieldExprState int
+
+const (
+	parseFieldExprStateOutsideBracket = iota + 1
+	parseFieldExprStateStartOfBracket
+	parseFieldExprStateMiddleOfBracket
+)
+
+func (p *parser) parseFieldExprGetErrorForFirstToken(state parseFieldExprState) error {
+	if state == parseFieldExprStateOutsideBracket {
+		return p.sc.withErrorf("expecting an identifier at the start, instead found '%s'", p.sc.getTokenString())
+	}
+
+	beforeToken := "|"
+	if state == parseFieldExprStateStartOfBracket {
+		beforeToken = "{"
+	}
+	return p.sc.withErrorf(
+		"expecting an identifier after '%s', instead found '%s'",
+		beforeToken, p.sc.getTokenString(),
+	)
+}
+
+func (p *parser) parseFieldExprGetErrorForTokenIsNotDot(fieldElem string, state parseFieldExprState) error {
+	if state == parseFieldExprStateOutsideBracket {
+		if p.sc.getTokenType() != tokenTypeUnspecified {
+			return p.sc.withErrorf(
+				"expected '.' after identifier '%s', instead found '%s'",
+				fieldElem,
+				p.sc.getTokenString(),
+			)
+		}
+	}
+	return nil
+}
+
+//revive:disable-next-line:cognitive-complexity
+func (p *parser) parseFieldExpr(coll *fieldInfoCollector, state parseFieldExprState) error {
 	if p.sc.getTokenType() != tokenTypeIdent {
-		return p.sc.withErrorf("expecting an identifier, instead found '%s'", p.sc.getTokenString())
+		return p.parseFieldExprGetErrorForFirstToken(state)
 	}
 
 	fieldElem := p.sc.getIdentString()
@@ -58,6 +95,9 @@ func (p *parser) parseFieldExpr(coll *fieldInfoCollector) error {
 	// FieldLevelList
 	for {
 		if !p.sc.next() || p.sc.getTokenType() != tokenTypeDot {
+			if err := p.parseFieldExprGetErrorForTokenIsNotDot(fieldElem, state); err != nil {
+				return err
+			}
 			return p.addParentPrefix(coll.addIfNotExisted(fieldElem, false), parentPrefix)
 		}
 
@@ -102,7 +142,7 @@ func (p *parser) parseFieldExprBracket(coll *fieldInfoCollector) error {
 		return p.sc.withErrorf("expecting an identifier after '{'")
 	}
 
-	if err := p.parseFieldExpr(coll); err != nil {
+	if err := p.parseFieldExpr(coll, parseFieldExprStateStartOfBracket); err != nil {
 		return err
 	}
 
@@ -111,7 +151,10 @@ func (p *parser) parseFieldExprBracket(coll *fieldInfoCollector) error {
 	}
 
 	if p.sc.getTokenType() != tokenTypeClosingBracket {
-		return p.sc.withErrorf("missing '}'")
+		if p.sc.getTokenType() == tokenTypeUnspecified {
+			return p.sc.withErrorf("missing '}' at the end")
+		}
+		return p.sc.withErrorf("missing '}', instead found '%s'", p.sc.getTokenString())
 	}
 
 	p.sc.next()
@@ -128,7 +171,7 @@ func (p *parser) parseFieldSiblingList(coll *fieldInfoCollector) error {
 			return p.sc.withErrorf("expecting an identifier after '|'")
 		}
 
-		if err := p.parseFieldExpr(coll); err != nil {
+		if err := p.parseFieldExpr(coll, parseFieldExprStateMiddleOfBracket); err != nil {
 			return err
 		}
 	}

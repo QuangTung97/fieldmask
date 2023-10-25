@@ -30,6 +30,8 @@ type objectInfo struct {
 	subFields []objectField
 
 	alias string // computed by generate.go
+
+	opts *protoMsgOptions
 }
 
 func (o objectInfo) getKey() objectKey {
@@ -153,24 +155,33 @@ func parseMessageFields(
 type ProtoMessage struct {
 	protoMsg  proto.Message
 	limitedTo []fields.FieldInfo
+	opts      *protoMsgOptions
 }
 
 // NewProtoMessage ...
-func NewProtoMessage(msg proto.Message) ProtoMessage {
+func NewProtoMessage(msg proto.Message, options ...ProtoMessageOption) ProtoMessage {
 	return ProtoMessage{
 		protoMsg: msg,
+		opts:     computeProtoMsgOptions(options),
 	}
 }
 
 // NewProtoMessageWithFields ...
-func NewProtoMessageWithFields(msg proto.Message, limitedToFields []string) ProtoMessage {
+func NewProtoMessageWithFields(
+	msg proto.Message, limitedToFields []string, options ...ProtoMessageOption,
+) ProtoMessage {
 	limitedTo, err := fields.ComputeFieldInfos(limitedToFields)
 	if err != nil {
 		panic(err)
 	}
+
+	opts := computeProtoMsgOptions(options)
+	opts.limitedTo = limitedToFields
+
 	return ProtoMessage{
 		protoMsg:  msg,
 		limitedTo: limitedTo,
+		opts:      opts,
 	}
 }
 
@@ -191,6 +202,7 @@ func parseMessages(msgList ...ProtoMessage) []*objectInfo {
 		}
 
 		info := parseObjectInfo(msgType, parsedObjects, nil)
+		info.opts = msg.opts
 		result = append(result, info)
 	}
 
@@ -199,4 +211,45 @@ func parseMessages(msgList ...ProtoMessage) []*objectInfo {
 	selector.traverseAll(msgList, result)
 
 	return result
+}
+
+// ==================================
+// Proto Message Option
+// ==================================
+
+type protoMsgOptions struct {
+	limitedTo        []string
+	fieldMapTypeName string
+}
+
+func computeProtoMsgOptions(options []ProtoMessageOption) *protoMsgOptions {
+	opts := &protoMsgOptions{}
+	for _, fn := range options {
+		fn(opts)
+	}
+	return opts
+}
+
+func (o *protoMsgOptions) withFieldMapTypeName(originalName string) string {
+	if o != nil && o.fieldMapTypeName != "" {
+		return o.fieldMapTypeName
+	}
+	return originalName
+}
+
+func (o *protoMsgOptions) enableLimitedTo() bool {
+	if o != nil && len(o.limitedTo) > 0 {
+		return true
+	}
+	return false
+}
+
+// ProtoMessageOption ...
+type ProtoMessageOption func(opts *protoMsgOptions)
+
+// WithFieldMapRenameType ...
+func WithFieldMapRenameType(newTypeName string) ProtoMessageOption {
+	return func(opts *protoMsgOptions) {
+		opts.fieldMapTypeName = newTypeName
+	}
 }

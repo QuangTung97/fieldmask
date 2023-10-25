@@ -1,11 +1,13 @@
 package generated
 
 import (
-	"github.com/QuangTung97/fieldmask/fields"
-	"github.com/QuangTung97/fieldmask/testdata/pb"
+	"testing"
+
 	"github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/assert"
-	"testing"
+
+	"github.com/QuangTung97/fieldmask/fields"
+	"github.com/QuangTung97/fieldmask/testdata/pb"
 )
 
 func TestProviderFieldMask(t *testing.T) {
@@ -271,7 +273,7 @@ func TestProductFieldMask(t *testing.T) {
 		fm, err := NewProductFieldMask([]string{
 			"sku", "attributes.id", "attributes.options.invalid",
 		})
-		assert.Equal(t, "fieldmask: field not found 'attributes.options.invalid'", err.Error())
+		assert.Equal(t, "fieldmask: field not found or not allowed 'attributes.options.invalid'", err.Error())
 		assert.Nil(t, fm)
 	})
 
@@ -340,5 +342,24 @@ func TestProductFieldMask(t *testing.T) {
 		}, fields.WithMaxFields(3))
 		assert.Equal(t, fields.ErrExceedMaxFields, err)
 		assert.Nil(t, fm)
+	})
+
+	t.Run("with provider nil", func(t *testing.T) {
+		fm, err := NewProductFieldMask([]string{
+			"sku",
+			"provider.id", "provider.name", "provider.logo",
+		})
+		assert.Equal(t, nil, err)
+
+		p := &pb.Product{
+			Sku:       "SKU01",
+			Provider:  nil,
+			SellerIds: []int32{21, 22},
+		}
+
+		assert.Equal(t, &pb.Product{
+			Sku:      "SKU01",
+			Provider: nil,
+		}, fm.Mask(p))
 	})
 }

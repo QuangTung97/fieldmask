@@ -17,7 +17,7 @@ type FieldNotFoundError struct {
 var _ FieldErrorPrepend = FieldNotFoundError{}
 
 func (e FieldNotFoundError) Error() string {
-	return fmt.Sprintf("fieldmask: field not found '%s'", e.Field)
+	return fmt.Sprintf("fieldmask: field not found or not allowed '%s'", e.Field)
 }
 
 // PrependField ...

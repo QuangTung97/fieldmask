@@ -2,9 +2,10 @@ package fieldmap
 
 import (
 	"fmt"
-	"github.com/QuangTung97/fieldmask/fields"
 	"reflect"
 	"sync"
+
+	"github.com/QuangTung97/fieldmask/fields"
 )
 
 // Field ...
@@ -56,7 +57,7 @@ type fieldMapOptions struct {
 // Option ...
 type Option func(opts *fieldMapOptions)
 
-// WithStructTags ...
+// WithStructTags declares the list of struct tags allowed
 func WithStructTags(tags ...string) Option {
 	return func(opts *fieldMapOptions) {
 		opts.structTags = tags
@@ -73,7 +74,7 @@ func computeOptions(options []Option) fieldMapOptions {
 	return opts
 }
 
-// New ...
+// New creates a FieldMap
 func New[F Field, T MapType[F]](options ...Option) *FieldMap[F, T] {
 	opts := computeOptions(options)
 
@@ -266,7 +267,7 @@ func (f *FieldMap[F, T]) traverse(
 	}
 }
 
-// GetMapping ...
+// GetMapping returns mapping object
 func (f *FieldMap[F, T]) GetMapping() T {
 	return f.mapping
 }
@@ -275,19 +276,17 @@ func (*FieldMap[F, T]) indexOf(field F) int64 {
 	return reflect.ValueOf(field).Int() - 1
 }
 
-// IsStruct ...
+// IsStruct checks whether field is root field
 func (f *FieldMap[F, T]) IsStruct(field F) bool {
 	index := f.indexOf(field)
 	return len(f.children[index]) > 0
 }
 
-// ChildrenOf ...
+// ChildrenOf returns children of field
 func (f *FieldMap[F, T]) ChildrenOf(field F) []F {
 	index := f.indexOf(field)
 	result := make([]F, 0, len(f.children[index]))
-	for _, childField := range f.children[index] {
-		result = append(result, childField)
-	}
+	result = append(result, f.children[index]...)
 	return result
 }
 
@@ -310,12 +309,12 @@ func (f *FieldMap[F, T]) AncestorOf(field F) []F {
 	}
 }
 
-// GetFieldName ...
+// GetFieldName returns the name declared in the struct
 func (f *FieldMap[F, T]) GetFieldName(field F) string {
 	return f.fieldNames[f.indexOf(field)]
 }
 
-// GetFullFieldName ...
+// GetFullFieldName returns the full qualified name, separated by dot
 func (f *FieldMap[F, T]) GetFullFieldName(field F) string {
 	fullName := ""
 	for {
@@ -333,12 +332,12 @@ func (f *FieldMap[F, T]) GetFullFieldName(field F) string {
 	}
 }
 
-// GetStructTag ...
+// GetStructTag returns the struct tag value associated with the field
 func (f *FieldMap[F, T]) GetStructTag(tag string, field F) string {
 	return f.structTags[tag][f.indexOf(field)]
 }
 
-// GetFullStructTag ...
+// GetFullStructTag similar to GetFullFieldName, returns the qualified name
 func (f *FieldMap[F, T]) GetFullStructTag(tag string, field F) string {
 	fullTag := ""
 	for {
@@ -405,7 +404,7 @@ func (f *FieldMap[F, T]) fromMaskedFieldsRecursive(
 	return result, nil
 }
 
-// FromMaskedFields ...
+// FromMaskedFields gets list of fields from masked fields in field mask, associated with tag
 func (f *FieldMap[F, T]) FromMaskedFields(
 	tag string, maskedFields []fields.FieldInfo,
 ) ([]F, error) {

@@ -4,6 +4,7 @@ type computeOptions struct {
 	maxComponentLen int
 	maxFields       int
 	maxDepth        int
+	limitedToFields []string
 }
 
 func newComputeOptions(options []Option) *computeOptions {
@@ -39,5 +40,12 @@ func WithMaxFieldDepth(depth int) Option {
 func WithMaxFieldComponentLength(maxLength int) Option {
 	return func(opts *computeOptions) {
 		opts.maxComponentLen = maxLength
+	}
+}
+
+// WithLimitedToFields ...
+func WithLimitedToFields(limitedTo []string) Option {
+	return func(opts *computeOptions) {
+		opts.limitedToFields = limitedTo
 	}
 }

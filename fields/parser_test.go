@@ -162,13 +162,13 @@ func TestParser_Error(t *testing.T) {
 	t.Run("first token is not ident", func(t *testing.T) {
 		p := newParserTest(".")
 		err := p.parse()
-		assert.Equal(t, errors.New("fields: expecting an identifier, instead found '.'"), err)
+		assert.Equal(t, errors.New("fields: expecting an identifier at the start, instead found '.'"), err)
 	})
 
 	t.Run("first token is not ident, found '{'", func(t *testing.T) {
 		p := newParserTest("{")
 		err := p.parse()
-		assert.Equal(t, errors.New("fields: expecting an identifier, instead found '{'"), err)
+		assert.Equal(t, errors.New("fields: expecting an identifier at the start, instead found '{'"), err)
 	})
 
 	t.Run("expect ident after opening bracket", func(t *testing.T) {
@@ -180,7 +180,7 @@ func TestParser_Error(t *testing.T) {
 	t.Run("expect closing bracket", func(t *testing.T) {
 		p := newParserTest("info.{sku")
 		err := p.parse()
-		assert.Equal(t, errors.New("fields: missing '}'"), err)
+		assert.Equal(t, errors.New("fields: missing '}' at the end"), err)
 	})
 
 	t.Run("expect ident after vertical line", func(t *testing.T) {
@@ -235,6 +235,30 @@ func TestParser_Error(t *testing.T) {
 		p := newParserTest("info.{sku|name}?")
 		err := p.parse()
 		assert.Equal(t, errors.New("fields: character '?' is not allowed"), err)
+	})
+
+	t.Run("missing open bracket", func(t *testing.T) {
+		p := newParserTest("info.sku|name}")
+		err := p.parse()
+		assert.Equal(t, errors.New("fields: expected '.' after identifier 'sku', instead found '|'"), err)
+	})
+
+	t.Run("missing closing bracket", func(t *testing.T) {
+		p := newParserTest("info.{sku{}")
+		err := p.parse()
+		assert.Equal(t, errors.New("fields: missing '}', instead found '{'"), err)
+	})
+
+	t.Run("expect identifier after vertical line", func(t *testing.T) {
+		p := newParserTest("info.{sku|}")
+		err := p.parse()
+		assert.Equal(t, errors.New("fields: expecting an identifier after '|', instead found '}'"), err)
+	})
+
+	t.Run("expect identifier after open bracket", func(t *testing.T) {
+		p := newParserTest("info.{.}")
+		err := p.parse()
+		assert.Equal(t, errors.New("fields: expecting an identifier after '{', instead found '.'"), err)
 	})
 }
 
